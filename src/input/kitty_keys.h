@@ -84,5 +84,5 @@ static const struct kitty_key_data kitty_keymap[] = {
     {XKB_KEY_Super_L, 57444, 'u', true},
     {XKB_KEY_Super_R, 57450, 'u', true},
 
-    {XKB_KEY_Delete, 3, '~', false}, /* 0xffff: the largest keysym value here */
+    {XKB_KEY_Delete, 3, '~', false}, // 0xffff: the largest keysym value here
 };

@@ -1,4 +1,4 @@
-/* OSC sequences fed through term: title, colors, clipboard, hyperlinks. */
+// OSC sequences fed through term: title, colors, clipboard, hyperlinks.
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -70,7 +70,7 @@ test_colors(void) {
     struct term t;
     term_init(&t, 10, 2, &host, NULL);
 
-    /* Queries answer with the request's terminator */
+    // Queries answer with the request's terminator
     feed(&t, "\x1b]4;1;?\a");
     CHECK(strcmp(reply, "\x1b]4;1;rgb:cccc/9393/9393\a") == 0);
     feed(&t, "\x1b]11;?\x1b\\");
@@ -84,7 +84,7 @@ test_colors(void) {
     feed(&t, "\x1b]4;3;rgb:ffff/0/8080\a");
     CHECK(t.palette[3] == 0xff0080);
 
-    /* 10 with two arguments sets fg and bg */
+    // 10 with two arguments sets fg and bg
     feed(&t, "\x1b]10;#ffffff;#101010\a");
     CHECK(t.default_fg == 0xffffff && t.default_bg == 0x101010);
     feed(&t, "\x1b]12;#00ff00\a");
@@ -97,7 +97,7 @@ test_colors(void) {
     CHECK(t.default_fg == t.initial_fg && t.default_bg == t.initial_bg);
     CHECK(!t.cursor_color_set);
 
-    /* Malformed specs are ignored */
+    // Malformed specs are ignored
     feed(&t, "\x1b]4;1;rgb:zz/0/0\a\x1b]4;999;#ffffff\a");
     CHECK(t.palette[1] == t.initial_palette[1]);
     term_destroy(&t);
@@ -113,7 +113,7 @@ test_clipboard(void) {
     feed(&t, "\x1b]52;p;Zm9v\x1b\\");
     CHECK(clip_target == 'p' && strcmp(clip, "foo") == 0);
 
-    /* Reads are denied: no reply, clipboard untouched */
+    // Reads are denied: no reply, clipboard untouched
     feed(&t, "\x1b]52;c;?\a");
     CHECK(reply[0] == '\0' && strcmp(clip, "foo") == 0);
     feed(&t, "\x1b]52;c;!!!\a");
@@ -131,7 +131,7 @@ test_hyperlinks(void) {
     struct term t;
     term_init(&t, 10, 3, &host, NULL);
 
-    /* Cells written inside the link carry its handle; cells outside carry none */
+    // Cells written inside the link carry its handle; cells outside carry none
     feed(&t, "a\x1b]8;;https://a.example/x\x1b\\bc\x1b]8;;\x1b\\d");
     CHECK(cell_link(cell_at(&t, 0, 0)) == 0);
     uint16_t h = cell_link(cell_at(&t, 0, 1));
@@ -140,7 +140,7 @@ test_hyperlinks(void) {
     const struct hyperlink *l = hyperlink_get(&t.hyperlinks, h);
     CHECK(l != NULL && strcmp(l->uri, "https://a.example/x") == 0 && l->id[0] == '\0');
 
-    /* Same (id, uri) dedups; a different id does not; URIs may hold ';' and BEL terminates */
+    // Same (id, uri) dedups; a different id does not; URIs may hold ';' and BEL terminates
     feed(&t, "\r\n\x1b]8;id=k:foo=bar;https://b.example/?q=1;2\aE\x1b]8;;\a");
     uint16_t h2 = cell_link(cell_at(&t, 1, 0));
     l = hyperlink_get(&t.hyperlinks, h2);
@@ -151,18 +151,18 @@ test_hyperlinks(void) {
     feed(&t, "\x1b]8;id=j;https://b.example/?q=1;2\aG\x1b]8;;\a");
     CHECK(cell_link(cell_at(&t, 1, 2)) != h2);
 
-    /* SGR reset does not close a link; erasing a cell removes it */
+    // SGR reset does not close a link; erasing a cell removes it
     feed(&t, "\r\n\x1b]8;;https://a.example/x\x1b\\\x1b[0mH\x1b[0m");
     CHECK(cell_link(cell_at(&t, 2, 0)) == h);
     feed(&t, "\x1b]8;;\x1b\\\r\x1b[K");
     CHECK(cell_link(cell_at(&t, 2, 0)) == 0);
 
-    /* Survives scrolling into history */
+    // Survives scrolling into history
     feed(&t, "\r\n");
     CHECK(cell_link(cell_at(&t, 0, 0)) == h2);
     CHECK(cell_link(cell_at(&t, -1, 1)) == h);
 
-    /* An over-long URI is rejected and closes any open link */
+    // An over-long URI is rejected and closes any open link
     char *big = xmalloc(HYPERLINK_MAX_URI + 64);
     strcpy(big, "\x1b]8;;http://");
     size_t n = strlen(big);
@@ -173,8 +173,9 @@ test_hyperlinks(void) {
     free(big);
     CHECK(cell_link(cell_at(&t, 2, 0)) == 0);
 
-    /* Reset drops the table and the open link */
-    feed(&t, "\x1b]8;;http://ok\a\x1b" "c");
+    // Reset drops the table and the open link
+    feed(&t, "\x1b]8;;http://ok\a\x1b"
+             "c");
     CHECK(t.link == 0 && t.hyperlinks.count == 0);
     term_destroy(&t);
 }

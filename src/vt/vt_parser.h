@@ -14,16 +14,16 @@
 #define VT_PARAM_MAX 0xffffff
 
 struct vt_csi {
-    uint8_t private_marker; /* '?', '>', '=', '<' or 0 */
+    uint8_t private_marker; // '?', '>', '=', '<' or 0
     uint8_t n_inter;
     uint8_t inter[VT_MAX_INTERMEDIATES];
     uint8_t final;
     int nparams;
     uint32_t params[VT_MAX_PARAMS];
-    uint32_t sub_mask; /* bit i: params[i] was introduced by ':' */
+    uint32_t sub_mask; // bit i: params[i] was introduced by ':'
 };
 
-/* Parameter i, or def when missing or 0 (the usual CSI default rule). */
+// Parameter i, or def when missing or 0 (the usual CSI default rule).
 static inline uint32_t
 vt_param(const struct vt_csi *csi, int i, uint32_t def) {
     return i < csi->nparams && csi->params[i] != 0 ? csi->params[i] : def;
@@ -34,16 +34,16 @@ vt_param_is_sub(const struct vt_csi *csi, int i) {
     return i < csi->nparams && (csi->sub_mask & (1u << i));
 }
 
-/* Any callback may be NULL. String payloads (osc, apc) are NUL-terminated. */
+// Any callback may be NULL. String payloads (osc, apc) are NUL-terminated.
 struct vt_callbacks {
     void (*print)(void *user, uint32_t cp);
     void (*print_ascii)(void *user, const uint8_t *s, size_t len);
     void (*execute)(void *user, uint8_t c);
     void (*csi)(void *user, const struct vt_csi *csi);
     void (*esc)(void *user, const uint8_t *inter, int n_inter, uint8_t final);
-    void (*osc)(void *user, const uint8_t *data, size_t len, bool bel); /* bel: BEL-terminated */
+    void (*osc)(void *user, const uint8_t *data, size_t len, bool bel); // bel: BEL-terminated
     void (*apc)(void *user, const uint8_t *data, size_t len);
-    /* private_marker: '<','=','>','?' or 0. params/nparams: as in vt_csi. data is NUL-terminated. */
+    // private_marker: '<','=','>','?' or 0. params/nparams: as in vt_csi. data is NUL-terminated.
     void (*dcs)(void *user, uint8_t private_marker, const uint32_t *params, int nparams,
                 uint8_t final, const uint8_t *data, size_t len);
 };
@@ -58,7 +58,7 @@ enum vt_state {
     VT_CSI_IGNORE,
     VT_DCS_ENTRY,
     VT_DCS_PARAM,
-    VT_DCS, /* passthrough: buffering the DCS string body until ST */
+    VT_DCS, // passthrough: buffering the DCS string body until ST
     VT_OSC_STRING,
     VT_APC_STRING,
     VT_SOS_PM_STRING,
@@ -76,7 +76,7 @@ struct vt_parser {
     uint32_t utf8_min;
     int utf8_left;
 
-    uint8_t *str; /* OSC / APC payload */
+    uint8_t *str; // OSC / APC payload
     size_t str_len, str_cap;
     bool str_overflow;
 };

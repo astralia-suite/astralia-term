@@ -17,7 +17,7 @@ bool url_at(struct term *t, int row, int col, struct grid_range *range, char **u
  * belongs to any link, for the always-on underline. */
 void url_row_links(struct term *t, int row, bool *mask);
 
-/* Marks every row of the soft-wrapped line around row dirty. */
+// Marks every row of the soft-wrapped line around row dirty.
 void url_mark_line_dirty(struct term *t, int row);
 
 /* Highlights the link at on-screen (row, col), marking changed rows dirty;

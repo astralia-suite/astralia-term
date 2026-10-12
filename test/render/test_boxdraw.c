@@ -1,4 +1,4 @@
-/* Procedural box-drawing and block geometry. */
+// Procedural box-drawing and block geometry.
 #include <stdio.h>
 #include <string.h>
 

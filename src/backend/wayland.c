@@ -69,12 +69,12 @@ struct backend {
     struct wl_keyboard *keyboard;
     struct wl_pointer *pointer;
     struct wp_cursor_shape_device_v1 *cursor_shape_device;
-    uint32_t enter_serial; /* of the last wl_pointer.enter; cursor-shape needs it */
+    uint32_t enter_serial; // of the last wl_pointer.enter; cursor-shape needs it
     enum cursor_shape shape;
 
     struct wl_data_device *data_device;
     struct zwp_primary_selection_device_v1 *primary_selection_device;
-    uint32_t last_serial; /* from the last key or button event; needed to claim a selection */
+    uint32_t last_serial; // from the last key or button event; needed to claim a selection
 
     /* Text this window owns per target, offered to a wl_data_source /
      * zwp_primary_selection_source_v1 created fresh on every claim. */
@@ -85,11 +85,11 @@ struct backend {
     struct wl_data_source *clipboard_source;
     struct zwp_primary_selection_source_v1 *primary_source;
 
-    /* The other side's current offer; replaced or nulled by .selection. */
+    // The other side's current offer; replaced or nulled by .selection.
     struct wl_data_offer *clipboard_offer;
     struct zwp_primary_selection_offer_v1 *primary_offer;
 
-    /* One paste in flight: a pipe registered with the loop, growing buffer. */
+    // One paste in flight: a pipe registered with the loop, growing buffer.
     struct {
         bool active;
         enum selection_target target;
@@ -109,25 +109,25 @@ struct backend {
     struct xkb_keymap *keymap;
     struct xkb_state *xkb_state;
 
-    /* Key repeat is done client-side on Wayland */
+    // Key repeat is done client-side on Wayland
     int repeat_timer;
     int32_t repeat_rate, repeat_delay;
-    uint32_t repeat_key; /* xkb keycode; 0 when not repeating */
+    uint32_t repeat_key; // xkb keycode; 0 when not repeating
 
-    int width, height; /* logical (surface) size */
+    int width, height; // logical (surface) size
     int pending_width, pending_height;
     bool configured;
 
     struct wl_buf bufs[MAX_BUFFERS];
 };
 
-/* Logical length to buffer pixels. */
+// Logical length to buffer pixels.
 static int
 to_pixels(const struct backend *b, int logical) {
     return (int)lround(logical * b->scale);
 }
 
-/* ---- buffers ---- */
+// ---- buffers ----
 
 static void
 buffer_release(void *data, struct wl_buffer *wl_buffer) {
@@ -259,7 +259,7 @@ wl_commit(struct backend *b, struct buffer *base, pixman_region32_t *damage) {
     buf->base.busy = true;
 }
 
-/* ---- xdg-shell ---- */
+// ---- xdg-shell ----
 
 static void
 wm_base_ping(void *data, struct xdg_wm_base *wm_base, uint32_t serial) {
@@ -349,9 +349,9 @@ static const struct wp_fractional_scale_v1_listener fractional_scale_listener = 
     .preferred_scale = fractional_preferred_scale,
 };
 
-/* ---- keyboard ---- */
+// ---- keyboard ----
 
-/* Current keyboard modifier state, for key events and pointer events alike. */
+// Current keyboard modifier state, for key events and pointer events alike.
 static unsigned
 mods_from_xkb(struct backend *b) {
     struct {
@@ -509,12 +509,12 @@ static const struct wl_keyboard_listener keyboard_listener = {
     .repeat_info = keyboard_repeat_info,
 };
 
-/* ---- pointer ---- */
+// ---- pointer ----
 
 /* Wheel notches per continuous-axis scroll unit, for compositors that only
  * send wl_pointer.axis (touchpads, or pre-v5 wheel reporting): an
  * approximation, since no discrete "click" size is given for that event. */
-#define AXIS_LINE_UNITS (10 * 256) /* wl_fixed_t is 24.8 fixed point */
+#define AXIS_LINE_UNITS (10 * 256) // wl_fixed_t is 24.8 fixed point
 
 static void
 apply_cursor_shape(struct backend *b) {
@@ -563,7 +563,7 @@ pointer_button(void *data, struct wl_pointer *p, uint32_t serial, uint32_t time,
         xt_button = 3;
         break;
     default:
-        return; /* side/extra buttons: out of scope */
+        return; // side/extra buttons: out of scope
     }
     b->listener->pointer_button(b->data, xt_button, state == WL_POINTER_BUTTON_STATE_PRESSED,
                                 b->ptr_x, b->ptr_y, mods_from_xkb(b));
@@ -587,7 +587,7 @@ static void
 pointer_axis_stop(void *data, struct wl_pointer *p, uint32_t t, uint32_t axis) {
     struct backend *b = data;
     if (axis <= WL_POINTER_AXIS_HORIZONTAL_SCROLL)
-        b->axis_cont_remainder[axis] = 0; /* don't carry a stale remainder into the next scroll */
+        b->axis_cont_remainder[axis] = 0; // don't carry a stale remainder into the next scroll
 }
 
 static void
@@ -611,7 +611,7 @@ pointer_axis_value120(void *data, struct wl_pointer *p, uint32_t axis, int32_t v
 static void
 pointer_frame(void *data, struct wl_pointer *p) {
     struct backend *b = data;
-    int steps[2] = {0, 0}; /* [0] vertical (+down), [1] horizontal (+right) */
+    int steps[2] = {0, 0}; // [0] vertical (+down), [1] horizontal (+right)
 
     for (int a = 0; a < 2; a++) {
         if (!b->axis_touched[a])
@@ -647,14 +647,14 @@ static const struct wl_pointer_listener pointer_listener = {
     .axis_value120 = pointer_axis_value120,
 };
 
-/* ---- clipboard ---- */
+// ---- clipboard ----
 
 #define CLIPBOARD_MIME "text/plain;charset=utf-8"
 
 static void
 paste_recv_finish(struct backend *b) {
     if (b->paste_recv.active)
-        loop_del(b->loop, b->paste_recv.fd); /* also closes the fd */
+        loop_del(b->loop, b->paste_recv.fd); // also closes the fd
     b->paste_recv.active = false;
     if (b->paste_recv.len > 0)
         b->listener->paste(b->data, b->paste_recv.data, b->paste_recv.len);
@@ -681,8 +681,8 @@ paste_recv_fd_cb(struct loop *loop, int fd, uint32_t events, void *data) {
         if (n < 0 && errno == EINTR)
             continue;
         if (n < 0 && errno == EAGAIN)
-            return true; /* more later */
-        break;           /* EOF, or a real error: either way the transfer is over */
+            return true; // more later
+        break;           // EOF, or a real error: either way the transfer is over
     }
     paste_recv_finish(b);
     return true;
@@ -691,7 +691,7 @@ paste_recv_fd_cb(struct loop *loop, int fd, uint32_t events, void *data) {
 static void
 wl_request_paste(struct backend *b, enum selection_target target) {
     if (b->paste_recv.active)
-        return; /* one paste in flight at a time */
+        return; // one paste in flight at a time
 
     int fds[2];
     if (pipe2(fds, O_CLOEXEC | O_NONBLOCK) < 0) {
@@ -711,7 +711,7 @@ wl_request_paste(struct backend *b, enum selection_target target) {
 
     if (!requested) {
         close(fds[0]);
-        return; /* nothing to paste; listener->paste() simply never fires */
+        return; // nothing to paste; listener->paste() simply never fires
     }
 
     b->paste_recv.active = true;
@@ -901,7 +901,7 @@ wl_set_selection(struct backend *b, enum selection_target target, const char *te
     }
 }
 
-/* ---- seat and registry ---- */
+// ---- seat and registry ----
 
 static void
 seat_capabilities(void *data, struct wl_seat *seat, uint32_t caps) {
@@ -953,7 +953,7 @@ registry_global(void *data, struct wl_registry *registry, uint32_t name,
     } else if (strcmp(interface, wl_shm_interface.name) == 0) {
         b->shm = wl_registry_bind(registry, name, &wl_shm_interface, 1);
     } else if (strcmp(interface, wl_seat_interface.name) == 0 && b->seat == NULL) {
-        /* first seat only; v5 for release requests, v8 for wl_pointer.axis_value120 */
+        // first seat only; v5 for release requests, v8 for wl_pointer.axis_value120
         if (version >= 5) {
             b->seat = wl_registry_bind(registry, name, &wl_seat_interface, MIN(version, 8u));
             wl_seat_add_listener(b->seat, &seat_listener, b);
@@ -993,7 +993,7 @@ static const struct wl_registry_listener registry_listener = {
     .global_remove = registry_global_remove,
 };
 
-/* ---- event loop integration ---- */
+// ---- event loop integration ----
 
 static bool
 display_fd_cb(struct loop *loop, int fd, uint32_t events, void *data) {
@@ -1019,7 +1019,7 @@ pre_poll_flush(struct loop *loop, void *data) {
         LOG_ERRNO("failed to flush Wayland requests");
 }
 
-/* ---- setup ---- */
+// ---- setup ----
 
 static void wl_destroy(struct backend *b);
 
@@ -1047,7 +1047,7 @@ wl_create(struct loop *loop, const struct backend_listener *listener, void *data
     b->xkb_ctx = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
     b->registry = wl_display_get_registry(b->display);
     wl_registry_add_listener(b->registry, &registry_listener, b);
-    wl_display_roundtrip(b->display); /* globals */
+    wl_display_roundtrip(b->display); // globals
 
     if (b->compositor == NULL || b->shm == NULL || b->wm_base == NULL) {
         LOG_ERR("compositor lacks wl_compositor v4, wl_shm or xdg_wm_base");
@@ -1057,7 +1057,7 @@ wl_create(struct loop *loop, const struct backend_listener *listener, void *data
     if (b->seat == NULL)
         LOG_WARN("no wl_seat v5+; keyboard input unavailable");
 
-    wl_display_roundtrip(b->display); /* seat capabilities, keymap */
+    wl_display_roundtrip(b->display); // seat capabilities, keymap
     setup_data_devices(b);
 
     b->surface = wl_compositor_create_surface(b->compositor);
@@ -1083,7 +1083,7 @@ wl_create(struct loop *loop, const struct backend_listener *listener, void *data
     } else
         LOG_WARN("no xdg-decoration; window will have no decorations");
 
-    /* Initial commit without a buffer; the compositor answers with configure */
+    // Initial commit without a buffer; the compositor answers with configure
     wl_surface_commit(b->surface);
 
     b->repeat_timer = loop_timer_add(loop, repeat_timer_cb, b);
@@ -1155,7 +1155,7 @@ wl_destroy(struct backend *b) {
         wl_data_offer_destroy(b->clipboard_offer);
     if (b->primary_offer != NULL)
         zwp_primary_selection_offer_v1_destroy(b->primary_offer);
-    /* wl_data_device has no destructor at v1, the version bound above */
+    // wl_data_device has no destructor at v1, the version bound above
     if (b->primary_selection_device != NULL)
         zwp_primary_selection_device_v1_destroy(b->primary_selection_device);
     if (b->primary_selection_manager != NULL)

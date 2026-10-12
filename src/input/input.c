@@ -9,14 +9,14 @@
 #include "core/util.h"
 #include "input/kitty_keys.h"
 
-/* modifier parameter: 1 + shift(1) + alt(2) + ctrl(4) + super(8) */
+// modifier parameter: 1 + shift(1) + alt(2) + ctrl(4) + super(8)
 static int
 mod_param(unsigned mods) {
     return 1 + ((mods & MOD_SHIFT) ? 1 : 0) + ((mods & MOD_ALT) ? 2 : 0) +
            ((mods & MOD_CTRL) ? 4 : 0) + ((mods & MOD_SUPER) ? 8 : 0);
 }
 
-/* CSI/SS3 keys with a final letter: arrows, Home, End, F1-F4 */
+// CSI/SS3 keys with a final letter: arrows, Home, End, F1-F4
 static size_t
 letter_key(char *out, char final, unsigned mods, bool ss3) {
     int m = mod_param(mods);
@@ -25,7 +25,7 @@ letter_key(char *out, char final, unsigned mods, bool ss3) {
     return (size_t)snprintf(out, INPUT_MAX_SEQ, "\033%c%c", ss3 ? 'O' : '[', final);
 }
 
-/* CSI n ~ keys: Insert, Delete, PgUp, PgDn, F5-F12 */
+// CSI n ~ keys: Insert, Delete, PgUp, PgDn, F5-F12
 static size_t
 tilde_key(char *out, int n, unsigned mods) {
     int m = mod_param(mods);
@@ -45,7 +45,7 @@ with_alt(char *out, unsigned mods, const char *s, size_t len) {
     return n + len;
 }
 
-/* ---- kitty keyboard protocol (CSI ... u), progressive enhancement ---- */
+// ---- kitty keyboard protocol (CSI ... u), progressive enhancement ----
 
 static const struct kitty_key_data *
 kitty_lookup(xkb_keysym_t sym) {
@@ -62,7 +62,7 @@ kitty_lookup(xkb_keysym_t sym) {
     return NULL;
 }
 
-/* First UTF-32 code point of a short UTF-8 string; 0 if empty or malformed. */
+// First UTF-32 code point of a short UTF-8 string; 0 if empty or malformed.
 static uint32_t
 utf8_first_cp(const char *s, int len) {
     if (len <= 0)
@@ -154,7 +154,7 @@ kitty_encode(const struct key_event *ev, const struct term *t,
     size_t n;
 
     if (final != 'u' && final != '~') {
-        /* Arrows, Home/End, F1/F2/F4: legacy CSI form, no numeric key code */
+        // Arrows, Home/End, F1/F2/F4: legacy CSI form, no numeric key code
         n = emit_mods ? (size_t)snprintf(buf, sizeof(buf), "\033[1;%d%s%c", mods,
                                          event_buf, final)
                       : (size_t)snprintf(buf, sizeof(buf), "\033[%c", final);
@@ -210,7 +210,7 @@ kitty_encode(const struct key_event *ev, const struct term *t,
     return n;
 }
 
-/* ---- mouse reporting (CSI M ... / CSI < ... M/m) ---- */
+// ---- mouse reporting (CSI M ... / CSI < ... M/m) ----
 
 static int
 mouse_mod_bits(unsigned mods) {
@@ -357,7 +357,7 @@ input_encode(const struct key_event *ev, const struct term *t,
 
     case XKB_KEY_space:
         if (mods & MOD_CTRL)
-            return with_alt(out, mods, "", 1); /* NUL */
+            return with_alt(out, mods, "", 1); // NUL
         break;
     }
 

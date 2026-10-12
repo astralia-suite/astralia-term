@@ -19,7 +19,7 @@ struct composed_chain {
 struct composed_table {
     struct composed_chain *chains;
     uint32_t count, cap;
-    uint32_t *slots; /* open-addressing hash: chain index + 1, 0 = empty */
+    uint32_t *slots; // open-addressing hash: chain index + 1, 0 = empty
     uint32_t slot_cap;
 };
 
@@ -36,5 +36,5 @@ void composed_clear(struct composed_table *tbl);
  * is full or the table is exhausted (the caller then drops comb). */
 uint32_t composed_add(struct composed_table *tbl, uint32_t cell_cp, uint32_t comb);
 
-/* NULL if cp is not a composed value from this table. */
+// NULL if cp is not a composed value from this table.
 const struct composed_chain *composed_get(const struct composed_table *tbl, uint32_t cp);

@@ -37,7 +37,7 @@ link_hash(const char *id, const char *uri) {
     uint32_t h = 2166136261u;
     for (const char *p = id; *p != '\0'; p++)
         h = (h ^ (uint8_t)*p) * 16777619u;
-    h = (h ^ 0xff) * 16777619u; /* separator: ("a","b") != ("ab","") */
+    h = (h ^ 0xff) * 16777619u; // separator: ("a","b") != ("ab","")
     for (const char *p = uri; *p != '\0'; p++)
         h = (h ^ (uint8_t)*p) * 16777619u;
     return h;
@@ -84,7 +84,7 @@ uint16_t hyperlink_intern(struct hyperlink_table *tbl, const char *id, const cha
     tbl->links[tbl->count] = (struct hyperlink){.id = xstrdup(id), .uri = xstrdup(uri)};
     tbl->count++;
 
-    /* Keep the hash at most half full */
+    // Keep the hash at most half full
     if (tbl->count * 2 > tbl->slot_cap)
         slots_grow(tbl);
     else

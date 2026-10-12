@@ -6,9 +6,9 @@
 #define LOG_MODULE "vt"
 #include "core/util.h"
 
-#define OSC_MAX_LEN (1u << 20)  /* OSC 52 payloads can be large */
-#define APC_MAX_LEN (16u << 20) /* kitty graphics, unchunked */
-#define DCS_MAX_LEN (16u << 20) /* sixel images, unchunked */
+#define OSC_MAX_LEN (1u << 20)  // OSC 52 payloads can be large
+#define APC_MAX_LEN (16u << 20) // kitty graphics, unchunked
+#define DCS_MAX_LEN (16u << 20) // sixel images, unchunked
 
 void vt_parser_init(struct vt_parser *p, const struct vt_callbacks *cb, void *user) {
     *p = (struct vt_parser){.state = VT_GROUND, .cb = *cb, .user = user};
@@ -103,8 +103,8 @@ str_start(struct vt_parser *p, enum vt_state state) {
 static void
 str_put(struct vt_parser *p, uint8_t c) {
     size_t max = p->state == VT_APC_STRING ? APC_MAX_LEN
-               : p->state == VT_DCS        ? DCS_MAX_LEN
-                                            : OSC_MAX_LEN;
+                 : p->state == VT_DCS      ? DCS_MAX_LEN
+                                           : OSC_MAX_LEN;
     if (p->str_overflow)
         return;
     if (p->str_len + 1 >= max) {
@@ -119,7 +119,7 @@ str_put(struct vt_parser *p, uint8_t c) {
     p->str[p->str_len++] = c;
 }
 
-/* Called whenever an OSC/APC string ends (BEL, ST, or a new ESC). */
+// Called whenever an OSC/APC string ends (BEL, ST, or a new ESC).
 static void
 str_end(struct vt_parser *p, bool bel) {
     bool osc = p->state == VT_OSC_STRING && p->cb.osc != NULL;
@@ -141,7 +141,7 @@ str_end(struct vt_parser *p, bool bel) {
                       p->csi.final, p->str, p->str_len);
     }
 
-    /* Don't hold on to a huge buffer after a large transfer */
+    // Don't hold on to a huge buffer after a large transfer
     if (p->str_cap > 64 * 1024) {
         free(p->str);
         p->str = NULL;
@@ -168,7 +168,7 @@ utf8_start(struct vt_parser *p, uint8_t c) {
         print(p, 0xfffd);
 }
 
-/* Returns true if c was consumed as a continuation byte. */
+// Returns true if c was consumed as a continuation byte.
 static bool
 utf8_continue(struct vt_parser *p, uint8_t c) {
     if ((c & 0xc0) != 0x80) {
@@ -249,7 +249,7 @@ csi_param(struct vt_parser *p, uint8_t c) {
         param_sep(p, c == ':');
         p->state = VT_CSI_PARAM;
     } else if (c < 0x40) {
-        /* private marker; only valid as the first byte */
+        // private marker; only valid as the first byte
         if (p->state == VT_CSI_ENTRY) {
             p->csi.private_marker = c;
             p->state = VT_CSI_PARAM;
@@ -280,7 +280,7 @@ csi_intermediate(struct vt_parser *p, uint8_t c) {
 static void
 dcs_header(struct vt_parser *p, uint8_t c) {
     if (c < 0x20) {
-        /* ignore C0 controls in the DCS header */
+        // ignore C0 controls in the DCS header
     } else if (c < 0x30) {
         collect(p, c);
     } else if (c <= '9') {
@@ -290,7 +290,7 @@ dcs_header(struct vt_parser *p, uint8_t c) {
         param_sep(p, c == ':');
         p->state = VT_DCS_PARAM;
     } else if (c < 0x40) {
-        /* private marker; only valid as the first byte */
+        // private marker; only valid as the first byte
         if (p->state == VT_DCS_ENTRY) {
             p->csi.private_marker = c;
             p->state = VT_DCS_PARAM;
@@ -299,7 +299,7 @@ dcs_header(struct vt_parser *p, uint8_t c) {
         p->csi.final = c;
         str_start(p, VT_DCS);
     }
-    /* c >= 0x7f: malformed; ignore */
+    // c >= 0x7f: malformed; ignore
 }
 
 static void
@@ -313,13 +313,13 @@ csi_ignore(struct vt_parser *p, uint8_t c) {
 static void
 string(struct vt_parser *p, uint8_t c) {
     if (c == 0x07 && p->state == VT_OSC_STRING) {
-        /* BEL terminates OSC */
+        // BEL terminates OSC
         str_end(p, true);
         p->state = VT_GROUND;
     } else if (c >= 0x20) {
         str_put(p, c);
     }
-    /* other C0 controls are ignored inside strings */
+    // other C0 controls are ignored inside strings
 }
 
 static void
@@ -327,7 +327,7 @@ byte(struct vt_parser *p, uint8_t c) {
     if (p->utf8_left > 0 && utf8_continue(p, c))
         return;
 
-    /* "anywhere" transitions */
+    // "anywhere" transitions
     if (c == 0x18 || c == 0x1a) {
         if (p->state == VT_OSC_STRING || p->state == VT_APC_STRING || p->state == VT_DCS)
             p->str_len = 0;
@@ -373,7 +373,7 @@ byte(struct vt_parser *p, uint8_t c) {
         dcs_header(p, c);
         break;
     case VT_SOS_PM_STRING:
-        break; /* swallowed until ST */
+        break; // swallowed until ST
     }
 }
 

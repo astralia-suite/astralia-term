@@ -37,10 +37,9 @@ kitty_placeholder_decode(const struct term *t, uint32_t cp) {
     return pc;
 }
 
-bool
-kitty_placeholder_resolve(struct kitty_placeholder_run *run,
-                          const struct kitty_placeholder_cell *pc, uint32_t fg, uint32_t ul,
-                          int *out_row, int *out_col, int *out_msb) {
+bool kitty_placeholder_resolve(struct kitty_placeholder_run *run,
+                               const struct kitty_placeholder_cell *pc, uint32_t fg, uint32_t ul,
+                               int *out_row, int *out_col, int *out_msb) {
     bool have_row = pc->have_row, have_col = pc->have_col, have_msb = pc->have_msb;
     int row = pc->row, col = pc->col, msb = pc->msb;
     bool same = run->valid && run->fg == fg && run->ul == ul;
@@ -65,7 +64,7 @@ kitty_placeholder_resolve(struct kitty_placeholder_run *run,
         }
         have_col = have_msb = true;
     } else if (have_row && have_col && !have_msb && same && run->row == row &&
-              run->col + 1 == col) {
+               run->col + 1 == col) {
         msb = run->msb;
         have_msb = true;
     }

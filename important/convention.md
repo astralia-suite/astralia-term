@@ -8,11 +8,11 @@
 
 ## Commenting
 
-- Comments are sparse and use `/* */`, never `//`.
+- Comments are sparse; a one-line comment uses `//`, and `/* */` is only for comments spanning multiple lines.
 - Allowed:
-  - A one-line contract above a public declaration in a header, when the name alone doesn't say it (e.g. `/* Return false to stop the loop */`).
-  - Comments that group constants or tables (e.g. `/* DEC special graphics, 0x5f..0x7e */`).
-  - Section dividers in headers (e.g. `/* ---- internals shared with vt_csi.c ---- */`).
+  - A one-line contract above a public declaration in a header, when the name alone doesn't say it (e.g. `// Return false to stop the loop`).
+  - Comments that group constants or tables (e.g. `// DEC special graphics, 0x5f..0x7e`).
+  - Section dividers in headers (e.g. `// ---- internals shared with vt_csi.c ----`).
   - A short "why" where the code would otherwise look wrong.
   - License/attribution notices for code taken from foot.
 - No comments narrating what the next line does, and no mentions of past fixes.

@@ -88,7 +88,7 @@ uint32_t composed_add(struct composed_table *tbl, uint32_t cell_cp, uint32_t com
     c->count = (uint8_t)count;
     tbl->count++;
 
-    /* Keep the hash at most half full */
+    // Keep the hash at most half full
     if (tbl->count * 2 > tbl->slot_cap)
         slots_grow(tbl);
     else

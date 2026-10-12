@@ -11,15 +11,15 @@
 #include "term/selection.h"
 #include "term/url.h"
 
-#define LINK_HOVER_FG 0x9b57f4 /* astralia-shell-i3 palette::accent */
+#define LINK_HOVER_FG 0x9b57f4 // astralia-shell-i3 palette::accent
 
-#define BELL_FLASH_ALPHA 0x4000 /* opacity of the visual-bell overlay, 0..0xffff */
+#define BELL_FLASH_ALPHA 0x4000 // opacity of the visual-bell overlay, 0..0xffff
 
-/* Solid-color source reused between glyphs of the same color */
+// Solid-color source reused between glyphs of the same color
 static pixman_image_t *solid_img;
 static uint32_t solid_rgb;
 
-/* Premultiplied, as pixman expects for a8r8g8b8 destinations */
+// Premultiplied, as pixman expects for a8r8g8b8 destinations
 static pixman_color_t
 to_pixman(uint32_t rgb, uint16_t alpha) {
     return (pixman_color_t){
@@ -77,7 +77,7 @@ bool render_needed(const struct renderer *r, const struct term *t) {
         t->colors_changed || t->selection_changed)
         return true;
     for (int i = 0; i < t->rows; i++) {
-        /* grid_row() only allocates, so casting away const is harmless */
+        // grid_row() only allocates, so casting away const is harmless
         if (grid_row(((struct term *)t)->grid, i)->dirty)
             return true;
     }
@@ -100,7 +100,7 @@ resolve(const struct term *t, uint32_t color, bool is_fg, bool bold) {
     case COLOR_PALETTE: {
         uint32_t idx = COLOR_VALUE(color) & 0xff;
         if (is_fg && bold && idx < 8)
-            idx += 8; /* bold as bright */
+            idx += 8; // bold as bright
         return t->palette[idx];
     }
     case COLOR_RGB:
@@ -121,7 +121,7 @@ cell_colors(const struct renderer *r, const struct term *t, const struct cell *c
     uint32_t f = resolve(t, c->fg, true, c->attrs & ATTR_BOLD);
     uint32_t b = resolve(t, c->bg, false, false);
 
-    /* Only the default background is translucent */
+    // Only the default background is translucent
     if (bg_alpha != NULL) {
         bool default_bg_shows = COLOR_TAG(c->bg) == COLOR_DEFAULT &&
                                 !(c->attrs & ATTR_REVERSE) && !block_cursor && !selected;
@@ -185,7 +185,7 @@ draw_decorations(const struct renderer *r, pixman_image_t *dst, const struct cel
         int uy = y + f->baseline + f->underline_pos - thick / 2;
         uy = MIN(uy, y + f->cell_height - thick);
         fill(dst, fg, x, uy, w, thick);
-        if (ul == 2) /* double; curly/dotted/dashed draw as single for now */
+        if (ul == 2) // double; curly/dotted/dashed draw as single for now
             fill(dst, fg, x, MIN(uy + thick * 2, y + f->cell_height - thick), w, thick);
     }
     if (c->attrs & ATTR_STRIKE) {
@@ -273,12 +273,12 @@ draw_text(const struct renderer *r, const struct term *t, pixman_image_t *dst,
         return;
     }
 
-    /* No shaping: overlay the marks on the base glyph */
+    // No shaping: overlay the marks on the base glyph
     for (int i = 0; i < chain->count; i++)
         blit_glyph(r, dst, fonts_glyph(r->fonts, chain->cps[i], style), fg, x, y);
 }
 
-/* Reused across box-drawing cells, like placeholder_buf below */
+// Reused across box-drawing cells, like placeholder_buf below
 static uint8_t *boxdraw_buf;
 static size_t boxdraw_buf_size;
 
@@ -293,7 +293,7 @@ static void
 draw_boxdraw(const struct renderer *r, pixman_image_t *dst, const struct boxdraw_spec *spec,
              uint32_t fg, int x, int y) {
     int cw = r->fonts->cell_width, ch = r->fonts->cell_height;
-    /* A light line is 1pt, ceil(96/72) = 2px at 96 dpi */
+    // A light line is 1pt, ceil(96/72) = 2px at 96 dpi
     int light = MAX(2, r->fonts->underline_thickness);
 
     if (spec->kind == BOXDRAW_ARC || spec->kind == BOXDRAW_DIAG) {
@@ -318,12 +318,12 @@ draw_boxdraw(const struct renderer *r, pixman_image_t *dst, const struct boxdraw
         fill_over(dst, fg, rects[i].alpha, x + rects[i].x, y + rects[i].y, rects[i].w, rects[i].h);
 }
 
-/* ---- kitty graphics: Unicode placeholders ---- */
+// ---- kitty graphics: Unicode placeholders ----
 /* Diacritic decoding and left-neighbor inheritance live in
  * term/kitty_placeholder.c (no pixman/fcft dependency, so they're testable
  * standalone); this file only does the pixel-slice blit. */
 
-/* Reused across placeholder cells within a frame, like solid_img above. */
+// Reused across placeholder cells within a frame, like solid_img above.
 static uint32_t *placeholder_buf;
 static int placeholder_buf_w, placeholder_buf_h;
 
@@ -369,7 +369,7 @@ blit_placeholder_image(const struct renderer *r, pixman_image_t *dst,
     pixman_image_unref(src);
 }
 
-/* ---- kitty graphics: non-virtual placements ---- */
+// ---- kitty graphics: non-virtual placements ----
 
 /* Placements visible this frame, with their anchor's view row and column.
  * Rebuilt at the start of every frame, reused across rows like solid_img. */
@@ -400,7 +400,7 @@ collect_frame_images(struct term *t) {
     frame_images_n = 0;
     graphics_each_anchor(t, -t->view_offset, t->rows - 1 - t->view_offset, collect_frame_image, t);
 
-    uint64_t h = 1469598103934665603ull; /* FNV-1a */
+    uint64_t h = 1469598103934665603ull; // FNV-1a
     for (size_t i = 0; i < frame_images_n; i++) {
         uint32_t v[3] = {frame_images[i].plc->handle, (uint32_t)frame_images[i].row,
                          (uint32_t)frame_images[i].col};
@@ -485,7 +485,7 @@ draw_row(struct renderer *r, struct term *t, int row_idx, pixman_image_t *dst) {
     pixman_region32_init_rect(&clip, r->pad_x, y, t->cols * cw, ch);
     pixman_image_set_clip_region32(dst, &clip);
 
-    /* Backgrounds, merged into runs of equal color */
+    // Backgrounds, merged into runs of equal color
     int run_start = 0;
     uint32_t run_bg = 0;
     uint16_t run_alpha = 0xffff;
@@ -512,7 +512,7 @@ draw_row(struct renderer *r, struct term *t, int row_idx, pixman_image_t *dst) {
         }
     }
 
-    /* Glyphs and decorations */
+    // Glyphs and decorations
     struct kitty_placeholder_run placeholder_run = {0};
     for (int col = 0; col < t->cols; col++) {
         const struct cell *c = &cells[col];
@@ -529,7 +529,7 @@ draw_row(struct renderer *r, struct term *t, int row_idx, pixman_image_t *dst) {
         int w = (col + 1 < t->cols && cells[col + 1].cp == CELL_SPACER) ? 2 * cw : cw;
 
         if (c->attrs & ATTR_IMAGE) {
-            placeholder_run.valid = false; /* an anchor: drawn by draw_images() */
+            placeholder_run.valid = false; // an anchor: drawn by draw_images()
         } else {
             struct kitty_placeholder_cell pc = kitty_placeholder_decode(t, c->cp);
             if (pc.is_placeholder) {
@@ -552,7 +552,7 @@ draw_row(struct renderer *r, struct term *t, int row_idx, pixman_image_t *dst) {
 
     draw_images(r, t, row_idx, dst);
 
-    /* Non-block cursors, and the hollow block when unfocused */
+    // Non-block cursors, and the hollow block when unfocused
     if (cursor_here && !block) {
         const struct cell *c = &cells[cursor_col];
         uint32_t fg, bg;
@@ -566,7 +566,7 @@ draw_row(struct renderer *r, struct term *t, int row_idx, pixman_image_t *dst) {
                     : cw;
 
         switch (t->cursor_style) {
-        case CURSOR_BLOCK: /* unfocused */
+        case CURSOR_BLOCK: // unfocused
             fill(dst, fg, x, y, w, 1);
             fill(dst, fg, x, y + ch - 1, w, 1);
             fill(dst, fg, x, y, 1, ch);
@@ -616,12 +616,12 @@ void render_frame(struct renderer *r, struct term *t, struct buffer *buf,
         pixman_region32_union_rect(damage, damage, 0, 0, buf->width, buf->height);
     }
 
-    /* Dirty flags track live rows; a scrolled-back view redraws everything */
+    // Dirty flags track live rows; a scrolled-back view redraws everything
     bool all_rows = full || t->view_offset > 0;
     if (!all_rows) {
         if (r->last_cursor_row >= 0 && r->last_cursor_row < t->rows) {
             if (r->last_cursor_row != t->cursor.row) {
-                /* Links on the lines the cursor left and entered switch on/off */
+                // Links on the lines the cursor left and entered switch on/off
                 url_mark_line_dirty(t, r->last_cursor_row);
                 url_mark_line_dirty(t, t->cursor.row);
             } else

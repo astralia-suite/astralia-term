@@ -18,9 +18,9 @@ size_t input_encode(const struct key_event *ev, const struct term *t,
 size_t input_mouse_encode(int button, bool pressed, bool motion, int col, int row,
                           unsigned mods, bool sgr, char out[static INPUT_MAX_SEQ]);
 
-/* Wheel: buttons 64-67. dir: 0=up, 1=down, 2=left, 3=right. */
+// Wheel: buttons 64-67. dir: 0=up, 1=down, 2=left, 3=right.
 size_t input_wheel_encode(int dir, int col, int row, unsigned mods, bool sgr,
                           char out[static INPUT_MAX_SEQ]);
 
-/* Plain Up/Down arrow, for 1007 alternate-scroll's fallback. */
+// Plain Up/Down arrow, for 1007 alternate-scroll's fallback.
 size_t input_encode_arrow(bool up, bool app_cursor, char out[static INPUT_MAX_SEQ]);

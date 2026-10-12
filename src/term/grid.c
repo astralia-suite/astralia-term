@@ -80,7 +80,7 @@ int grid_scroll_up(struct grid *g, int top, int bottom, int n, struct cell blank
         n = height;
 
     if (top == 0 && bottom == g->rows - 1) {
-        /* Rotate the ring; the old top rows become scrollback */
+        // Rotate the ring; the old top rows become scrollback
         g->offset = (g->offset + n) % g->num_lines;
         g->scrollback_used = MIN(g->scrollback_used + n, g->num_lines - g->rows);
         for (int r = g->rows - n; r < g->rows; r++)
@@ -89,7 +89,7 @@ int grid_scroll_up(struct grid *g, int top, int bottom, int n, struct cell blank
         return g->num_lines > g->rows ? n : 0;
     }
 
-    /* Rotate row structs inside the region (cells pointers move, no copy) */
+    // Rotate row structs inside the region (cells pointers move, no copy)
     for (int r = top; r <= bottom - n; r++) {
         struct row *dst = ring_row(g, r);
         struct row *src = ring_row(g, r + n);
@@ -132,7 +132,7 @@ clamp_points(struct grid_point *points, int npoints, int cols, int rows) {
 
 static void
 resize_truncate(struct grid *g, int cols, int rows, struct grid_point *points, int npoints) {
-    /* Keep the cursor line on screen: drop lines from the top if needed */
+    // Keep the cursor line on screen: drop lines from the top if needed
     int skip = npoints > 0 && points[0].row >= rows ? points[0].row - rows + 1 : 0;
     int copy = MIN(g->rows - skip, rows);
 
@@ -146,7 +146,7 @@ resize_truncate(struct grid *g, int cols, int rows, struct grid_point *points, i
             continue;
         dst->cells = xcalloc(cols, sizeof(struct cell));
         memcpy(dst->cells, src->cells, (size_t)MIN(cols, g->cols) * sizeof(struct cell));
-        /* Don't leave half a wide character at the right edge */
+        // Don't leave half a wide character at the right edge
         if (cols < g->cols && dst->cells[cols - 1].cp != 0 && src->cells[cols].cp == CELL_SPACER)
             dst->cells[cols - 1] = (struct cell){0};
         dst->wrapped = src->wrapped && cols >= g->cols;
@@ -159,7 +159,7 @@ resize_truncate(struct grid *g, int cols, int rows, struct grid_point *points, i
     clamp_points(points, npoints, cols, rows);
 }
 
-/* Index of the last non-blank cell, plus one */
+// Index of the last non-blank cell, plus one
 static int
 row_used(const struct row *row, int cols) {
     if (row->cells == NULL)
@@ -189,7 +189,7 @@ out_new_row(struct reflow_out *o) {
 
 #define MAX_POINTS 4
 
-/* Cell i of a row's cells followed by its overflow */
+// Cell i of a row's cells followed by its overflow
 static struct cell
 src_cell(const struct row *row, int old_cols, int i) {
     if (i < old_cols)
@@ -217,7 +217,7 @@ clip_row(struct row *dst, const struct row *src, int old_cols, int cols) {
         dst->overflow = xmalloc((size_t)dst->overflow_len * sizeof(struct cell));
         for (int i = cols; i < len; i++)
             dst->overflow[i - cols] = src_cell(src, old_cols, i);
-        /* Don't leave half a wide character at the right edge; it is lost */
+        // Don't leave half a wide character at the right edge; it is lost
         if (dst->overflow[0].cp == CELL_SPACER)
             dst->cells[cols - 1] = dst->overflow[0] = blank;
     }
@@ -231,7 +231,7 @@ resize_reflow(struct grid *g, int cols, int rows, struct grid_point *points, int
     struct grid_point out_pt[MAX_POINTS];
     bool found[MAX_POINTS] = {false};
 
-    /* Walk logical lines: runs of rows joined by the wrapped flag */
+    // Walk logical lines: runs of rows joined by the wrapped flag
     for (int r = -g->scrollback_used; r < g->rows;) {
         int e = r;
         while (e < g->rows - 1 && ring_row(g, e)->wrapped)
@@ -253,7 +253,7 @@ resize_reflow(struct grid *g, int cols, int rows, struct grid_point *points, int
             continue;
         }
 
-        /* Only the last row's overflow joins the line; a middle row's is lost */
+        // Only the last row's overflow joins the line; a middle row's is lost
         const struct row *last = ring_row(g, e);
         int last_len = last->overflow != NULL ? old_cols + last->overflow_len : row_used(last, old_cols);
         int len = (e - r) * old_cols + last_len;
@@ -275,7 +275,7 @@ resize_reflow(struct grid *g, int cols, int rows, struct grid_point *points, int
             int src_len = k == e ? last_len : old_cols;
             struct cell c = sc < src_len ? src_cell(src, old_cols, sc) : (struct cell){0};
             if (c.cp == CELL_SPACER)
-                continue; /* placed together with its head */
+                continue; // placed together with its head
 
             int w = sc + 1 < src_len && src_cell(src, old_cols, sc + 1).cp == CELL_SPACER ? 2 : 1;
             if (w > cols) {
@@ -310,7 +310,7 @@ resize_reflow(struct grid *g, int cols, int rows, struct grid_point *points, int
         r = e + 1;
     }
 
-    /* Drop trailing blank rows below the content and the tracked points */
+    // Drop trailing blank rows below the content and the tracked points
     int keep = 0;
     for (int i = 0; i < o.count; i++) {
         if (row_used(&o.rows[i], cols) > 0 || o.rows[i].overflow != NULL)
@@ -353,7 +353,7 @@ resize_reflow(struct grid *g, int cols, int rows, struct grid_point *points, int
 void grid_resize(struct grid *g, int cols, int rows, bool reflow,
                  struct grid_point *points, int npoints) {
     npoints = MIN(npoints, MAX_POINTS);
-    /* both resize paths rebuild *g from scratch; keyboard mode isn't screen content */
+    // both resize paths rebuild *g from scratch; keyboard mode isn't screen content
     __typeof__(g->kitty_kbd) kitty_kbd = g->kitty_kbd;
     if (reflow)
         resize_reflow(g, cols, rows, points, npoints);

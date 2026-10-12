@@ -78,7 +78,7 @@ int cp_width(uint32_t cp) {
     if (unlikely(cp >= 0x110000))
         return 1;
 
-    /* 2-bit codes: 0 = width 1, 1 = width 0, 2 = width 2 */
+    // 2-bit codes: 0 = width 1, 1 = width 0, 2 = width 2
     uint8_t byte = width_stage2[width_stage1[cp >> 8]][(cp & 0xff) >> 2];
     unsigned code = (byte >> ((cp & 3) * 2)) & 3;
     return code == 0 ? 1 : code == 1 ? 0

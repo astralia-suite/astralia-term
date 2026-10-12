@@ -1,4 +1,4 @@
-/* Legacy and kitty keyboard protocol (CSI ... u) encoding. */
+// Legacy and kitty keyboard protocol (CSI ... u) encoding.
 #include <stdio.h>
 #include <string.h>
 
@@ -53,7 +53,7 @@ int main(void) {
     struct term t;
     term_init(&t, 80, 24, &host, NULL);
 
-    /* ---- legacy (kitty protocol off) ---- */
+    // ---- legacy (kitty protocol off) ----
 
     struct key_event a_press = {.sym = XKB_KEY_a, .utf8 = "a", .utf8_len = 1};
     CHECK_SEQ(a_press, &t, "a");
@@ -76,45 +76,45 @@ int main(void) {
         .sym = XKB_KEY_a, .utf8 = "a", .utf8_len = 1, .action = KEY_RELEASE};
     CHECK_SEQ(a_release, &t, "");
 
-    /* ---- kitty protocol: CSI > / < / = / ? u wired through the real parser ---- */
+    // ---- kitty protocol: CSI > / < / = / ? u wired through the real parser ----
 
     reply[0] = '\0';
-    term_feed(&t, (const uint8_t *)"\033[>1u", 5); /* push, disambiguate */
+    term_feed(&t, (const uint8_t *)"\033[>1u", 5); // push, disambiguate
     CHECK(t.grid->kitty_kbd.flags[t.grid->kitty_kbd.idx] == KITTY_KBD_DISAMBIGUATE);
 
-    term_feed(&t, (const uint8_t *)"\033[?u", 4); /* query */
+    term_feed(&t, (const uint8_t *)"\033[?u", 4); // query
     CHECK(strcmp(reply, "\033[?1u") == 0);
 
-    term_feed(&t, (const uint8_t *)"\033[=6;2u", 7); /* set: OR in report-event|report-alt */
+    term_feed(&t, (const uint8_t *)"\033[=6;2u", 7); // set: OR in report-event|report-alt
     CHECK(t.grid->kitty_kbd.flags[t.grid->kitty_kbd.idx] ==
           (KITTY_KBD_DISAMBIGUATE | KITTY_KBD_REPORT_EVENT | KITTY_KBD_REPORT_ALTERNATE));
 
-    term_feed(&t, (const uint8_t *)"\033[=1u", 5); /* set: replace with disambiguate only */
+    term_feed(&t, (const uint8_t *)"\033[=1u", 5); // set: replace with disambiguate only
     CHECK(t.grid->kitty_kbd.flags[t.grid->kitty_kbd.idx] == KITTY_KBD_DISAMBIGUATE);
 
-    /* ---- kitty encoding, disambiguate only ---- */
+    // ---- kitty encoding, disambiguate only ----
 
-    CHECK_SEQ(a_press, &t, "a"); /* plain text still passes through as text */
+    CHECK_SEQ(a_press, &t, "a"); // plain text still passes through as text
     CHECK_SEQ(ctrl_a, &t, "\033[97;5u");
-    CHECK_SEQ(up, &t, "\033[A"); /* legacy final, no params needed */
+    CHECK_SEQ(up, &t, "\033[A"); // legacy final, no params needed
 
     struct key_event ctrl_up = {.sym = XKB_KEY_Up, .mods = MOD_CTRL};
     CHECK_SEQ(ctrl_up, &t, "\033[1;5A");
 
     struct key_event enter = {.sym = XKB_KEY_Return, .utf8 = "\r", .utf8_len = 1};
-    CHECK_SEQ(enter, &t, "\033[13u"); /* disambiguated from a literal CR */
+    CHECK_SEQ(enter, &t, "\033[13u"); // disambiguated from a literal CR
 
     struct key_event ctrl_enter = {
         .sym = XKB_KEY_Return, .mods = MOD_CTRL, .utf8 = "\r", .utf8_len = 1};
     CHECK_SEQ(ctrl_enter, &t, "\033[13;5u");
 
-    CHECK_SEQ(a_release, &t, ""); /* report-event is off: releases are silent */
+    CHECK_SEQ(a_release, &t, ""); // report-event is off: releases are silent
 
-    /* ---- kitty encoding, disambiguate + report events ---- */
+    // ---- kitty encoding, disambiguate + report events ----
 
-    term_feed(&t, (const uint8_t *)"\033[=3u", 5); /* replace: disambiguate|report-event */
+    term_feed(&t, (const uint8_t *)"\033[=3u", 5); // replace: disambiguate|report-event
 
-    CHECK_SEQ(ctrl_a, &t, "\033[97;5u"); /* press: event type 1 stays implicit */
+    CHECK_SEQ(ctrl_a, &t, "\033[97;5u"); // press: event type 1 stays implicit
 
     struct key_event ctrl_a_release = {
         .sym = XKB_KEY_a, .mods = MOD_CTRL, .utf8 = "\x01", .utf8_len = 1, .action = KEY_RELEASE};
@@ -129,35 +129,33 @@ int main(void) {
                                      .mods = MOD_CTRL | MOD_SHIFT,
                                      .utf8 = "\x05",
                                      .utf8_len = 1};
-    CHECK_SEQ(ctrl_shift_e, &t, "\033[101;6u"); /* nvim's flags: must differ from ctrl+e */
+    CHECK_SEQ(ctrl_shift_e, &t, "\033[101;6u"); // nvim's flags: must differ from ctrl+e
 
-    /* a window resize (tiling a neighbour) must not wipe the keyboard mode */
+    // a window resize (tiling a neighbour) must not wipe the keyboard mode
     term_resize(&t, 60, 20);
     CHECK_SEQ(ctrl_shift_e, &t, "\033[101;6u");
     term_resize(&t, 80, 24);
 
-    /* ---- kitty encoding, report-alternate: functional keys carry no alternates ---- */
+    // ---- kitty encoding, report-alternate: functional keys carry no alternates ----
 
-    term_feed(&t, (const uint8_t *)"\033[=7u", 5); /* disambiguate|report-event|report-alt */
+    term_feed(&t, (const uint8_t *)"\033[=7u", 5); // disambiguate|report-event|report-alt
 
-    /* xkb maps Delete/BackSpace to U+007F/U+0008, which must not leak as ":127" */
-    struct key_event del = {.sym = XKB_KEY_Delete, .base = XKB_KEY_Delete,
-                            .unshifted = XKB_KEY_Delete, .utf8 = "\x7f", .utf8_len = 1};
+    // xkb maps Delete/BackSpace to U+007F/U+0008, which must not leak as ":127"
+    struct key_event del = {.sym = XKB_KEY_Delete, .base = XKB_KEY_Delete, .unshifted = XKB_KEY_Delete, .utf8 = "\x7f", .utf8_len = 1};
     CHECK_SEQ(del, &t, "\033[3~");
 
-    struct key_event bksp = {.sym = XKB_KEY_BackSpace, .base = XKB_KEY_BackSpace,
-                             .unshifted = XKB_KEY_BackSpace, .utf8 = "\b", .utf8_len = 1};
+    struct key_event bksp = {.sym = XKB_KEY_BackSpace, .base = XKB_KEY_BackSpace, .unshifted = XKB_KEY_BackSpace, .utf8 = "\b", .utf8_len = 1};
     CHECK_SEQ(bksp, &t, "\033[127u");
 
-    term_feed(&t, (const uint8_t *)"\033[<u", 4); /* pop back to the never-touched base level */
+    term_feed(&t, (const uint8_t *)"\033[<u", 4); // pop back to the never-touched base level
     CHECK(t.grid->kitty_kbd.flags[t.grid->kitty_kbd.idx] == 0);
 
-    /* RIS clears the whole stack */
+    // RIS clears the whole stack
     term_reset(&t);
     CHECK(t.grid->kitty_kbd.flags[t.grid->kitty_kbd.idx] == 0);
     CHECK_SEQ(a_press, &t, "a");
 
-    /* ---- mouse: SGR and X10 encodings ---- */
+    // ---- mouse: SGR and X10 encodings ----
 
 #define CHECK_MOUSE(button, pressed, motion, col, row, mods, sgr, expect)                  \
     do {                                                                                   \
@@ -178,16 +176,16 @@ int main(void) {
     CHECK_MOUSE(1, false, false, 5, 10, 0, true, "\033[<0;6;11m");
     CHECK_MOUSE(1, true, true, 5, 10, 0, true, "\033[<32;6;11M");
     CHECK_MOUSE(2, true, false, 0, 0, MOD_SHIFT | MOD_CTRL, true, "\033[<21;1;1M");
-    /* no-button motion (any-event mode, nothing held): cb forced to xterm's 3 */
+    // no-button motion (any-event mode, nothing held): cb forced to xterm's 3
     CHECK_MOUSE(0, true, true, 0, 0, 0, true, "\033[<35;1;1M");
 
-    /* X10: cb+32/col+32/row+32 as raw bytes; release always reports cb=3 */
+    // X10: cb+32/col+32/row+32 as raw bytes; release always reports cb=3
     CHECK_MOUSE(1, true, false, 0, 0, 0, false, "\033[M !!");
     CHECK_MOUSE(1, false, false, 0, 0, 0, false, "\033[M#!!");
-    /* clamped at 223 to stay a single byte */
+    // clamped at 223 to stay a single byte
     CHECK_MOUSE(1, true, false, 500, 500, 0, false, "\033[M \xff\xff");
 
-    /* ---- wheel: xterm buttons 64-67 ---- */
+    // ---- wheel: xterm buttons 64-67 ----
 
 #define CHECK_WHEEL(dir, col, row, mods, sgr, expect)                                    \
     do {                                                                                 \
@@ -201,13 +199,13 @@ int main(void) {
         }                                                                                \
     } while (0)
 
-    CHECK_WHEEL(0, 0, 0, 0, true, "\033[<64;1;1M"); /* up */
-    CHECK_WHEEL(1, 0, 0, 0, true, "\033[<65;1;1M"); /* down */
-    CHECK_WHEEL(2, 0, 0, 0, true, "\033[<66;1;1M"); /* left */
+    CHECK_WHEEL(0, 0, 0, 0, true, "\033[<64;1;1M"); // up
+    CHECK_WHEEL(1, 0, 0, 0, true, "\033[<65;1;1M"); // down
+    CHECK_WHEEL(2, 0, 0, 0, true, "\033[<66;1;1M"); // left
     CHECK_WHEEL(3, 0, 0, MOD_SHIFT, true, "\033[<71;1;1M");
     CHECK_WHEEL(0, 0, 0, 0, false, "\033[M`!!");
 
-    /* ---- arrow (1007 alternate-scroll fallback) ---- */
+    // ---- arrow (1007 alternate-scroll fallback) ----
 
     char out[INPUT_MAX_SEQ];
     size_t n = input_encode_arrow(true, false, out);

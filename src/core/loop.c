@@ -48,12 +48,12 @@ struct loop {
     struct fd_handler **fds;
     size_t fd_count, fd_cap;
 
-    /* Handlers removed while dispatching; freed after the dispatch pass */
+    // Handlers removed while dispatching; freed after the dispatch pass
     struct fd_handler **deferred;
     size_t deferred_count, deferred_cap;
 
     int signal_fd;
-    sigset_t sigmask; /* signals routed through signal_fd */
+    sigset_t sigmask; // signals routed through signal_fd
     sigset_t orig_sigmask;
     struct sig_handler signals[65];
 

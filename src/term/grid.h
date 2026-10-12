@@ -33,10 +33,10 @@ enum cell_attr {
     ATTR_LINK = 1 << 12,
 };
 
-/* Second half of a double-width character; outside the Unicode range. */
+// Second half of a double-width character; outside the Unicode range.
 #define CELL_SPACER 0x110000u
 
-/* Kitty keyboard protocol progressive-enhancement flags (CSI ... u). */
+// Kitty keyboard protocol progressive-enhancement flags (CSI ... u).
 enum kitty_kbd_flags {
     KITTY_KBD_DISAMBIGUATE = 1 << 0,
     KITTY_KBD_REPORT_EVENT = 1 << 1,
@@ -51,27 +51,27 @@ enum kitty_kbd_flags {
 struct cell {
     uint32_t cp;
     uint32_t fg, bg;
-    uint32_t ul; /* underline color (SGR 58/59); kitty graphics placement ID */
+    uint32_t ul; // underline color (SGR 58/59); kitty graphics placement ID
     uint16_t attrs;
-    uint8_t tile_row, tile_col; /* ATTR_LINK: hyperlink handle */
+    uint8_t tile_row, tile_col; // ATTR_LINK: hyperlink handle
 };
 _Static_assert(sizeof(struct cell) == 20, "struct cell must be 20 bytes");
 
 struct row {
-    struct cell *cells; /* NULL until first touched */
+    struct cell *cells; // NULL until first touched
     /* Cells clipped off the right edge by a resize, restored on widening;
      * dropped by grid_row_fill() and row reuse. */
     struct cell *overflow;
     int overflow_len;
     bool dirty;
-    bool wrapped; /* line continues on the next row (soft wrap) */
+    bool wrapped; // line continues on the next row (soft wrap)
 };
 
 struct grid {
-    int cols, rows;      /* visible size */
-    int num_lines;       /* ring capacity: rows + scrollback */
-    int offset;          /* ring index of visible row 0 */
-    int scrollback_used; /* lines above row 0 holding history */
+    int cols, rows;      // visible size
+    int num_lines;       // ring capacity: rows + scrollback
+    int offset;          // ring index of visible row 0
+    int scrollback_used; // lines above row 0 holding history
     struct row *lines;
 
     /* Kitty keyboard protocol flags stack; normal and alt screens each
@@ -86,7 +86,7 @@ struct grid {
 void grid_init(struct grid *g, int cols, int rows, int scrollback);
 void grid_free(struct grid *g);
 
-/* A position in visible-row coordinates, tracked through grid_resize(). */
+// A position in visible-row coordinates, tracked through grid_resize().
 struct grid_point {
     int row, col;
 };

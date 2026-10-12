@@ -11,7 +11,7 @@ parse_ext_color(const struct vt_csi *c, int i, uint32_t *color) {
     *color = 0;
 
     if (vt_param_is_sub(c, i + 1)) {
-        /* colon form: 38:5:n, 38:2:r:g:b or 38:2:colorspace:r:g:b */
+        // colon form: 38:5:n, 38:2:r:g:b or 38:2:colorspace:r:g:b
         int k = 0;
         while (vt_param_is_sub(c, i + 1 + k))
             k++;
@@ -27,7 +27,7 @@ parse_ext_color(const struct vt_csi *c, int i, uint32_t *color) {
         return i + k;
     }
 
-    /* semicolon form: 38;5;n or 38;2;r;g;b */
+    // semicolon form: 38;5;n or 38;2;r;g;b
     if (i + 1 >= c->nparams)
         return i;
     uint32_t kind = c->params[i + 1];
@@ -41,7 +41,7 @@ parse_ext_color(const struct vt_csi *c, int i, uint32_t *color) {
                                            (c->params[i + 4] & 0xff));
         return i + 4;
     }
-    return c->nparams - 1; /* malformed: stop parsing */
+    return c->nparams - 1; // malformed: stop parsing
 }
 
 static void
@@ -195,7 +195,7 @@ sgr(struct term *t, const struct vt_csi *c) {
             break;
 
         default:
-            /* skip unknown sub-parameters along with their parent */
+            // skip unknown sub-parameters along with their parent
             while (vt_param_is_sub(c, i + 1))
                 i++;
             LOG_DBG("unhandled SGR %u", p);
@@ -285,7 +285,7 @@ decset(struct term *t, uint32_t mode, bool enable) {
     }
 }
 
-/* ---- kitty keyboard protocol (CSI ... u); see kitty_keys.h and input.c ---- */
+// ---- kitty keyboard protocol (CSI ... u); see kitty_keys.h and input.c ----
 
 static void
 kitty_kbd_query(struct term *t) {
@@ -308,7 +308,7 @@ kitty_kbd_pop(struct term *t, uint32_t n) {
     struct grid *g = t->grid;
     int idx = g->kitty_kbd.idx;
     for (uint32_t i = 0; i < MIN(n, ARRAY_LEN(g->kitty_kbd.flags)); i++) {
-        g->kitty_kbd.flags[idx] = 0; /* also covers over-popping past the base */
+        g->kitty_kbd.flags[idx] = 0; // also covers over-popping past the base
         idx = idx == 0 ? (int)ARRAY_LEN(g->kitty_kbd.flags) - 1 : idx - 1;
     }
     g->kitty_kbd.idx = idx;
@@ -331,7 +331,7 @@ kitty_kbd_set(struct term *t, uint32_t flags, uint32_t mode) {
     }
 }
 
-/* DECRQM status: 1 set, 2 reset, 0 not recognized */
+// DECRQM status: 1 set, 2 reset, 0 not recognized
 static int
 dec_mode_status(const struct term *t, uint32_t mode) {
     bool v;
@@ -623,10 +623,10 @@ csi_private(struct term *t, const struct vt_csi *c) {
         break;
     case 'J':
         term_erase_display(t, (int)vt_param(c, 0, 0));
-        break; /* DECSED */
+        break; // DECSED
     case 'K':
         term_erase_line(t, (int)vt_param(c, 0, 0));
-        break; /* DECSEL */
+        break; // DECSEL
     case 'n':
         if (vt_param(c, 0, 0) == 6) {
             int row = t->cursor.row - (t->modes.origin ? t->scroll_top : 0);
@@ -669,7 +669,7 @@ void term_csi(struct term *t, const struct vt_csi *c) {
             return;
         }
     } else if (c->n_inter == 1 && c->inter[0] == '$' && c->final == 'p') {
-        /* DECRQM */
+        // DECRQM
         uint32_t mode = vt_param(c, 0, 0);
         if (c->private_marker == '?')
             term_reply(t, "\033[?%u;%d$y", mode, dec_mode_status(t, mode));

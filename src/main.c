@@ -33,13 +33,13 @@
 #define FONT_SIZE_MIN 6.0
 #define FONT_SIZE_MAX 72.0
 #define FONT_SIZE_STEP 1.0
-#define DEFAULT_BG_ALPHA 0.7 /* opacity of the default background */
+#define DEFAULT_BG_ALPHA 0.7 // opacity of the default background
 #define PTY_READ_CHUNK (64 * 1024)
-#define PTY_READ_MAX (1024 * 1024) /* per wakeup, so input stays responsive */
+#define PTY_READ_MAX (1024 * 1024) // per wakeup, so input stays responsive
 #define BLINK_NS 500000000ull
-#define BELL_NS 100000000ull         /* visual bell flash duration */
-#define SYNC_TIMEOUT_NS 150000000ull /* longest a 2026 update may hold frames */
-#define SCROLL_LINES_PER_STEP 3      /* scrollback lines per wheel notch, mouse tracking off */
+#define BELL_NS 100000000ull         // visual bell flash duration
+#define SYNC_TIMEOUT_NS 150000000ull // longest a 2026 update may hold frames
+#define SCROLL_LINES_PER_STEP 3      // scrollback lines per wheel notch, mouse tracking off
 #define DOUBLE_CLICK_NS 400000000ull
 
 static uint64_t
@@ -54,11 +54,11 @@ struct app {
     struct term term;
     struct pty pty;
     struct fonts fonts;
-    char *font_base;       /* fontconfig pattern the size is substituted into */
-    double font_base_size; /* size Ctrl+0 returns to */
+    char *font_base;       // fontconfig pattern the size is substituted into
+    double font_base_size; // size Ctrl+0 returns to
     double font_size;
     int font_dpi;
-    double scale; /* output scale reported by the backend; 1.0 = 96 dpi */
+    double scale; // output scale reported by the backend; 1.0 = 96 dpi
     struct renderer renderer;
 
     const struct backend_ops *ops;
@@ -66,31 +66,31 @@ struct app {
     int width, height;
     bool frame_ready;
 
-    char *wbuf; /* bytes waiting for the pty to become writable */
+    char *wbuf; // bytes waiting for the pty to become writable
     size_t wlen, wcap;
-    bool pty_watched; /* pty master registered with the loop */
+    bool pty_watched; // pty master registered with the loop
 
     int blink_timer;
     bool blink_armed;
     int sync_timer;
     bool sync_armed;
-    int bell_timer; /* one-shot: ends the visual-bell flash */
+    int bell_timer; // one-shot: ends the visual-bell flash
 
-    int mouse_button_held; /* 0 = none, else 1-3; for 1002 drag reporting */
+    int mouse_button_held; // 0 = none, else 1-3; for 1002 drag reporting
 
-    int click_count;              /* consecutive same-cell left clicks; 1/2/3 = char/word/line */
-    struct grid_point last_click; /* screen coordinates */
+    int click_count;              // consecutive same-cell left clicks; 1/2/3 = char/word/line
+    struct grid_point last_click; // screen coordinates
     uint64_t last_click_ns;
 
     bool pointer_seen;
-    struct grid_point pointer; /* screen cell under the pointer, for link hover */
-    bool link_clicked;         /* swallow the release of a Ctrl+click that opened a link */
+    struct grid_point pointer; // screen cell under the pointer, for link hover
+    bool link_clicked;         // swallow the release of a Ctrl+click that opened a link
 
     bool quit;
     int exit_code;
 };
 
-/* ---- pty I/O ---- */
+// ---- pty I/O ----
 
 static void
 pty_flush(struct app *app) {
@@ -100,7 +100,7 @@ pty_flush(struct app *app) {
             if (errno == EINTR)
                 continue;
             if (errno != EAGAIN)
-                app->wlen = 0; /* child is gone; drop it */
+                app->wlen = 0; // child is gone; drop it
             break;
         }
         memmove(app->wbuf, app->wbuf + n, app->wlen - (size_t)n);
@@ -161,7 +161,7 @@ pty_cb(struct loop *loop, int fd, uint32_t events, void *data) {
     return true;
 }
 
-/* ---- term_host ---- */
+// ---- term_host ----
 
 static void
 host_set_title(void *user, const char *title) {
@@ -174,12 +174,12 @@ host_set_clipboard(void *user, char target, const char *text, size_t len) {
     struct app *app = user;
     if (app->ops->set_selection == NULL)
         return;
-    /* 'p' primary, 'c'/'s' clipboard, the OSC 52 target fallback */
+    // 'p' primary, 'c'/'s' clipboard, the OSC 52 target fallback
     enum selection_target t = target == 'p' ? SELECTION_PRIMARY : SELECTION_CLIPBOARD;
     app->ops->set_selection(app->backend, t, text, len);
 }
 
-/* Visual bell: flash for BELL_NS; a repeated bell restarts the flash. */
+// Visual bell: flash for BELL_NS; a repeated bell restarts the flash.
 static void
 host_bell(void *user) {
     struct app *app = user;
@@ -194,7 +194,7 @@ static const struct term_host term_host = {
     .bell = host_bell,
 };
 
-/* ---- timers ---- */
+// ---- timers ----
 
 static void
 blink_restart(struct app *app) {
@@ -233,7 +233,7 @@ sync_timer_cb(struct loop *loop, int fd, uint32_t events, void *data) {
     return true;
 }
 
-/* Arms or disarms the blink and synchronized-update timers to match state. */
+// Arms or disarms the blink and synchronized-update timers to match state.
 static void
 update_timers(struct app *app) {
     const struct term *t = &app->term;
@@ -253,7 +253,7 @@ update_timers(struct app *app) {
     }
 }
 
-/* ---- signals ---- */
+// ---- signals ----
 
 static bool
 sigchld_cb(struct loop *loop, int signo, void *data) {
@@ -277,7 +277,7 @@ sigterm_cb(struct loop *loop, int signo, void *data) {
     return false;
 }
 
-/* ---- backend events ---- */
+// ---- backend events ----
 
 /* Fits the grid to the window at the current cell size; `force` also
  * refreshes the pty's pixel size when only the cell size changed. */
@@ -344,7 +344,7 @@ on_frame(void *data) {
     app->frame_ready = true;
 }
 
-/* Window pixel coordinates to a grid cell, clamped inside the visible grid. */
+// Window pixel coordinates to a grid cell, clamped inside the visible grid.
 static void
 pixel_to_cell(struct app *app, int x, int y, int *col, int *row) {
     const struct fonts *f = &app->fonts;
@@ -353,7 +353,7 @@ pixel_to_cell(struct app *app, int x, int y, int *col, int *row) {
     *row = CLAMP((y - r->pad_y) / f->cell_height, 0, app->term.rows - 1);
 }
 
-/* Shift+PgUp/PgDn/Home/End move the scrollback view. */
+// Shift+PgUp/PgDn/Home/End move the scrollback view.
 static bool
 scrollback_key(struct app *app, const struct key_event *ev) {
     struct term *t = &app->term;
@@ -382,7 +382,7 @@ scrollback_key(struct app *app, const struct key_event *ev) {
     return false;
 }
 
-/* Ctrl+Shift+C/V and Shift+Insert: clipboard copy/paste of the selection. */
+// Ctrl+Shift+C/V and Shift+Insert: clipboard copy/paste of the selection.
 static bool
 clipboard_key(struct app *app, const struct key_event *ev) {
     if (ev->mods == (MOD_CTRL | MOD_SHIFT) && (ev->sym == XKB_KEY_C || ev->sym == XKB_KEY_c)) {
@@ -405,7 +405,7 @@ clipboard_key(struct app *app, const struct key_event *ev) {
     return false;
 }
 
-/* Ctrl +/-/0 (with or without Shift): grow, shrink, reset the font size. */
+// Ctrl +/-/0 (with or without Shift): grow, shrink, reset the font size.
 static bool
 font_key(struct app *app, const struct key_event *ev) {
     if (ev->mods != MOD_CTRL && ev->mods != (MOD_CTRL | MOD_SHIFT))
@@ -466,7 +466,7 @@ on_close(void *data) {
     app->quit = true;
 }
 
-/* Allow-listed schemes only: the URI comes from whatever wrote to the pty. */
+// Allow-listed schemes only: the URI comes from whatever wrote to the pty.
 static bool
 url_scheme_allowed(const char *uri) {
     static const char *const schemes[] = {"http://", "https://", "mailto:", "ftp://", "file://"};
@@ -477,7 +477,7 @@ url_scheme_allowed(const char *uri) {
     return false;
 }
 
-/* Fire-and-forget xdg-open; SIGCHLD reaps it (unknown pids are ignored). */
+// Fire-and-forget xdg-open; SIGCHLD reaps it (unknown pids are ignored).
 static void
 open_url(const char *uri) {
     if (!url_scheme_allowed(uri)) {
@@ -496,7 +496,7 @@ open_url(const char *uri) {
     posix_spawn_file_actions_destroy(&fa);
 }
 
-/* Re-highlights the link under the pointer, switching to the hand cursor over one. */
+// Re-highlights the link under the pointer, switching to the hand cursor over one.
 static void
 update_link_hover(struct app *app) {
     struct term *t = &app->term;
@@ -537,7 +537,7 @@ on_pointer_motion(void *data, int x, int y, unsigned mods) {
         pty_write(app, seq, n);
 }
 
-/* Opens the link at screen cell (col, row), if any. */
+// Opens the link at screen cell (col, row), if any.
 static bool
 open_link(struct app *app, int col, int row) {
     struct grid_range range;
@@ -591,7 +591,7 @@ on_pointer_button(void *data, int button, bool pressed, int x, int y, unsigned m
         app->link_clicked = false;
         return;
     }
-    /* Ctrl+click opens a link instead of starting a selection or reporting it */
+    // Ctrl+click opens a link instead of starting a selection or reporting it
     if (button == 1 && pressed && (mods & MOD_CTRL) && open_link(app, col, row)) {
         app->mouse_button_held = 0;
         app->link_clicked = true;
@@ -709,7 +709,7 @@ static const struct backend_listener listener = {
     .selection_lost = on_selection_lost,
 };
 
-/* Runs before each poll: draws at most one frame per display refresh. */
+// Runs before each poll: draws at most one frame per display refresh.
 static void
 render_hook(struct loop *loop, void *data) {
     struct app *app = data;
@@ -719,11 +719,11 @@ render_hook(struct loop *loop, void *data) {
 
     struct buffer *buf = app->ops->get_buffer(app->backend, app->width, app->height);
     if (buf == NULL)
-        return; /* all buffers busy; retried on the next wakeup */
+        return; // all buffers busy; retried on the next wakeup
 
     pixman_region32_t damage;
     pixman_region32_init(&damage);
-    if (app->pointer_seen) /* the text under a still pointer may have changed */
+    if (app->pointer_seen) // the text under a still pointer may have changed
         update_link_hover(app);
     render_frame(&app->renderer, &app->term, buf, &damage);
     app->frame_ready = false;
@@ -731,7 +731,7 @@ render_hook(struct loop *loop, void *data) {
     pixman_region32_fini(&damage);
 }
 
-/* ---- startup ---- */
+// ---- startup ----
 
 static const struct backend_ops *
 pick_backend(const char *name) {
@@ -814,7 +814,7 @@ int main(int argc, char *argv[]) {
             usage(argv[0]);
             return 0;
         case 'e':
-            goto done_opts; /* everything after -e is the command */
+            goto done_opts; // everything after -e is the command
         default:
             usage(argv[0]);
             return 2;
@@ -881,7 +881,7 @@ done_opts:;
     if (app.backend == NULL)
         goto out_term;
 
-    /* on_scale may already have resized the grid inside create() */
+    // on_scale may already have resized the grid inside create()
     if (!pty_spawn(&app.pty, cmd, "xterm-256color", app.term.cols, app.term.rows,
                    app.term.cols * app.fonts.cell_width, app.term.rows * app.fonts.cell_height))
         goto out_backend;

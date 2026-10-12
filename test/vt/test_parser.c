@@ -14,7 +14,7 @@ static int failures;
         }                                                                            \
     } while (0)
 
-/* Records every callback as text, e.g. "P(41)X(0a)C(?25h)" */
+// Records every callback as text, e.g. "P(41)X(0a)C(?25h)"
 static char log_buf[4096];
 
 static void __attribute__((format(printf, 1, 2)))
@@ -83,7 +83,7 @@ run(const char *input) {
     return log_buf;
 }
 
-/* Same, but fed one byte at a time to exercise state carried across reads */
+// Same, but fed one byte at a time to exercise state carried across reads
 static const char *
 run_bytewise(const char *input) {
     static const struct vt_callbacks cbs = {
@@ -120,23 +120,23 @@ run_bytewise(const char *input) {
     } while (0)
 
 int main(void) {
-    /* plain text and C0 */
+    // plain text and C0
     EXPECT("ab", "P(61)P(62)");
     EXPECT("a\r\nb", "P(61)X(0d)X(0a)P(62)");
 
-    /* UTF-8 */
-    EXPECT("\xc3\xa9", "P(e9)");            /* é */
-    EXPECT("\xe4\xb8\xad", "P(4e2d)");      /* 中 */
-    EXPECT("\xf0\x9f\x98\x80", "P(1f600)"); /* 😀 */
-    EXPECT("\xc0\xaf", "P(fffd)P(fffd)");   /* invalid lead byte */
-    EXPECT("\xe0\x80\xaf", "P(fffd)");      /* overlong */
-    EXPECT("\xed\xa0\x80", "P(fffd)");      /* surrogate */
+    // UTF-8
+    EXPECT("\xc3\xa9", "P(e9)");            // é
+    EXPECT("\xe4\xb8\xad", "P(4e2d)");      // 中
+    EXPECT("\xf0\x9f\x98\x80", "P(1f600)"); // 😀
+    EXPECT("\xc0\xaf", "P(fffd)P(fffd)");   // invalid lead byte
+    EXPECT("\xe0\x80\xaf", "P(fffd)");      // overlong
+    EXPECT("\xed\xa0\x80", "P(fffd)");      // surrogate
     EXPECT("\xc3"
            "a",
-           "P(fffd)P(61)");                  /* truncated sequence */
-    EXPECT("\xe4\xb8\x1b[m", "P(fffd)C(m)"); /* ESC interrupts UTF-8 */
+           "P(fffd)P(61)");                  // truncated sequence
+    EXPECT("\xe4\xb8\x1b[m", "P(fffd)C(m)"); // ESC interrupts UTF-8
 
-    /* CSI */
+    // CSI
     EXPECT("\x1b[H", "C(H)");
     EXPECT("\x1b[12;34H", "C(12;34H)");
     EXPECT("\x1b[;5H", "C(0;5H)");
@@ -146,11 +146,11 @@ int main(void) {
     EXPECT("\x1b[4:3m", "C(4:3m)");
     EXPECT("\x1b[2 q", "C(2 q)");
     EXPECT("\x1b[>c", "C(>c)");
-    EXPECT("\x1b[1\n2H", "X(0a)C(12H)");         /* C0 executes inside CSI */
-    EXPECT("\x1b[1?2Hx", "P(78)");               /* misplaced marker: ignored */
-    EXPECT("\x1b[99999999999A", "C(16777215A)"); /* clamped */
+    EXPECT("\x1b[1\n2H", "X(0a)C(12H)");         // C0 executes inside CSI
+    EXPECT("\x1b[1?2Hx", "P(78)");               // misplaced marker: ignored
+    EXPECT("\x1b[99999999999A", "C(16777215A)"); // clamped
 
-    /* ESC */
+    // ESC
     EXPECT("\x1b"
            "7\x1b"
            "8",
@@ -158,18 +158,18 @@ int main(void) {
     EXPECT("\x1b(0", "E((0)");
     EXPECT("\x1b#8", "E(#8)");
 
-    /* OSC terminated by BEL and by ST */
+    // OSC terminated by BEL and by ST
     EXPECT("\x1b]0;title\a", "O(0;title|bel)");
     EXPECT("\x1b]2;t\xc3\xa9\x1b\\", "O(2;t\xc3\xa9)E(\\)");
 
-    /* APC (kitty graphics) */
+    // APC (kitty graphics)
     EXPECT("\x1b_Gf=24;AAAA\x1b\\x", "A(Gf=24;AAAA)E(\\)P(78)");
 
-    /* DCS and SOS/PM are swallowed */
+    // DCS and SOS/PM are swallowed
     EXPECT("\x1bPq#0;1\x1b\\z", "E(\\)P(7a)");
     EXPECT("\x1b^hidden\x1b\\z", "E(\\)P(7a)");
 
-    /* CAN aborts a sequence */
+    // CAN aborts a sequence
     EXPECT("\x1b[12\x18"
            "a",
            "X(18)P(61)");

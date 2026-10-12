@@ -1,4 +1,4 @@
-/* Terminal + grid behavior, driven through escape sequences. */
+// Terminal + grid behavior, driven through escape sequences.
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -35,7 +35,7 @@ feed(struct term *t, const char *s) {
     term_feed(t, (const uint8_t *)s, strlen(s));
 }
 
-/* A row as ASCII: empty cells as ' ', spacers as '_', non-ASCII as '?' */
+// A row as ASCII: empty cells as ' ', spacers as '_', non-ASCII as '?'
 static const char *
 cells_text(const struct row *row, int cols) {
     static char buf[256];
@@ -82,17 +82,17 @@ static void
 test_width(void) {
     CHECK(cp_width('a') == 1);
     CHECK(cp_width('\t') == 0);
-    CHECK(cp_width(0x00e9) == 1);  /* é */
-    CHECK(cp_width(0x0301) == 0);  /* combining acute */
-    CHECK(cp_width(0x200b) == 0);  /* zero width space */
-    CHECK(cp_width(0x00ad) == 1);  /* soft hyphen */
-    CHECK(cp_width(0x4e2d) == 2);  /* 中 */
-    CHECK(cp_width(0xff21) == 2);  /* fullwidth A */
-    CHECK(cp_width(0x1f600) == 2); /* 😀 */
-    CHECK(cp_width(0x1160) == 0);  /* Hangul medial vowel */
-    CHECK(cp_width(0x2fffd) == 2); /* unassigned, plane 2 */
-    CHECK(cp_width(0x2500) == 1);  /* box drawing */
-    CHECK(cp_width(0xe000) == 1);  /* private use */
+    CHECK(cp_width(0x00e9) == 1);  // é
+    CHECK(cp_width(0x0301) == 0);  // combining acute
+    CHECK(cp_width(0x200b) == 0);  // zero width space
+    CHECK(cp_width(0x00ad) == 1);  // soft hyphen
+    CHECK(cp_width(0x4e2d) == 2);  // 中
+    CHECK(cp_width(0xff21) == 2);  // fullwidth A
+    CHECK(cp_width(0x1f600) == 2); // 😀
+    CHECK(cp_width(0x1160) == 0);  // Hangul medial vowel
+    CHECK(cp_width(0x2fffd) == 2); // unassigned, plane 2
+    CHECK(cp_width(0x2500) == 1);  // box drawing
+    CHECK(cp_width(0xe000) == 1);  // private use
 }
 
 static void
@@ -110,7 +110,7 @@ test_print_and_wrap(void) {
     CHECK(grid_row(t.grid, 0)->wrapped);
     CHECK_CURSOR(&t, 1, 1);
 
-    /* no autowrap: last column is overwritten */
+    // no autowrap: last column is overwritten
     feed(&t, "\x1b[?7l\x1b[3;1Hvwxyz12");
     CHECK_ROW(&t, 2, "vwxy2");
     term_destroy(&t);
@@ -127,13 +127,13 @@ test_scroll(void) {
     CHECK_ROW(&t, 2, "d  ");
     CHECK(t.grid->scrollback_used == 1);
 
-    /* scroll region rows 2..3: only those scroll */
+    // scroll region rows 2..3: only those scroll
     feed(&t, "\x1b[2;3r\x1b[3;1H\nx");
     CHECK_ROW(&t, 0, "b  ");
     CHECK_ROW(&t, 1, "d  ");
     CHECK_ROW(&t, 2, "x  ");
 
-    /* reverse index at the top margin scrolls the region down */
+    // reverse index at the top margin scrolls the region down
     feed(&t, "\x1b[2;1H\x1bM");
     CHECK_ROW(&t, 0, "b  ");
     CHECK_ROW(&t, 1, "   ");
@@ -159,7 +159,7 @@ test_erase_and_edit(void) {
     feed(&t, "\x1b[2J");
     CHECK_ROW(&t, 0, "     ");
 
-    /* background color erase */
+    // background color erase
     feed(&t, "\x1b[41m\x1b[2K");
     CHECK(grid_row(t.grid, 0)->cells[0].bg == COLOR_MAKE(COLOR_PALETTE, 1));
     term_destroy(&t);
@@ -170,16 +170,16 @@ test_wide(void) {
     struct term t;
     term_init(&t, 4, 2, &host, NULL);
 
-    feed(&t, "\xe4\xb8\xad"); /* 中 */
+    feed(&t, "\xe4\xb8\xad"); // 中
     CHECK_ROW(&t, 0, "?_  ");
     CHECK_CURSOR(&t, 0, 2);
 
-    /* wide char at the last column wraps */
+    // wide char at the last column wraps
     feed(&t, "a\xe4\xb8\xad");
     CHECK_ROW(&t, 0, "?_a ");
     CHECK_ROW(&t, 1, "?_  ");
 
-    /* overwriting the spacer blanks the head */
+    // overwriting the spacer blanks the head
     feed(&t, "\x1b[1;2Hx");
     CHECK_ROW(&t, 0, " xa ");
     term_destroy(&t);
@@ -261,7 +261,7 @@ test_resize(void) {
     struct term t;
     term_init(&t, 4, 3, &host, NULL);
 
-    /* The cursor sits after "cd", so at 2 columns it wraps onto its own row */
+    // The cursor sits after "cd", so at 2 columns it wraps onto its own row
     feed(&t, "a\r\nb\r\ncd");
     term_resize(&t, 2, 2);
     CHECK_ROW(&t, 0, "cd");
@@ -276,7 +276,7 @@ test_resize(void) {
     CHECK_ROW(&t, 3, "     ");
     CHECK_CURSOR(&t, 2, 2);
 
-    /* The alternate screen truncates instead of reflowing */
+    // The alternate screen truncates instead of reflowing
     feed(&t, "\x1b[?1049h\x1b[Hxyz12");
     term_resize(&t, 3, 4);
     CHECK_ROW(&t, 0, "xyz");
@@ -289,7 +289,7 @@ test_resize_clip(void) {
     struct term t;
     term_init(&t, 10, 3, &host, NULL);
 
-    /* Unwrapped rows off the cursor line clip instead of wrapping, and come back */
+    // Unwrapped rows off the cursor line clip instead of wrapping, and come back
     feed(&t, "abcdefgh\r\n12345678\r\n");
     term_resize(&t, 5, 3);
     CHECK_ROW(&t, 0, "abcde");
@@ -300,7 +300,7 @@ test_resize_clip(void) {
     CHECK_ROW(&t, 0, "abcdefgh  ");
     CHECK_ROW(&t, 1, "12345678  ");
 
-    /* An erase drops the hidden tail */
+    // An erase drops the hidden tail
     term_resize(&t, 5, 3);
     feed(&t, "\x1b[1;3H\x1b[K");
     term_resize(&t, 10, 3);
@@ -308,7 +308,7 @@ test_resize_clip(void) {
     CHECK_ROW(&t, 1, "12345678  ");
     term_destroy(&t);
 
-    /* A wrapped run holding an image anchor re-wraps and rejoins; the anchor rides along */
+    // A wrapped run holding an image anchor re-wraps and rejoins; the anchor rides along
     term_init(&t, 6, 3, &host, NULL);
     feed(&t, "abcdefgh");
     grid_row(t.grid, 0)->cells[2] = (struct cell){.ul = 1, .attrs = ATTR_IMAGE};
@@ -339,7 +339,7 @@ test_reflow(void) {
     struct term t;
     term_init(&t, 10, 3, &host, NULL);
 
-    /* A wrapped line re-wraps, and the cursor follows its text */
+    // A wrapped line re-wraps, and the cursor follows its text
     feed(&t, "abcdefghijKLM");
     CHECK_ROW(&t, 0, "abcdefghij");
     CHECK_CURSOR(&t, 1, 3);
@@ -354,7 +354,7 @@ test_reflow(void) {
     CHECK_CURSOR(&t, 1, 3);
     term_destroy(&t);
 
-    /* Growing taller pulls lines back out of scrollback */
+    // Growing taller pulls lines back out of scrollback
     term_init(&t, 4, 2, &host, NULL);
     feed(&t, "a\r\nb\r\nc");
     CHECK(t.grid->scrollback_used == 1);
@@ -365,14 +365,14 @@ test_reflow(void) {
     CHECK_ROW(&t, 2, "c   ");
     CHECK_CURSOR(&t, 2, 1);
 
-    /* Shrinking pushes lines into scrollback instead of dropping them */
+    // Shrinking pushes lines into scrollback instead of dropping them
     term_resize(&t, 4, 1);
     CHECK_ROW(&t, 0, "c   ");
     CHECK(t.grid->scrollback_used == 2);
     CHECK_ROW(&t, -2, "a   ");
     term_destroy(&t);
 
-    /* A wide character never splits across rows */
+    // A wide character never splits across rows
     term_init(&t, 5, 2, &host, NULL);
     feed(&t, "ab\xe4\xb8\xad");
     term_resize(&t, 3, 2);
@@ -394,7 +394,7 @@ test_combining(void) {
     CHECK(cells[1].cp == 'x');
     uint32_t e_acute = cells[0].cp;
 
-    /* Same chain reuses the same value; marks after a wide char go to its head */
+    // Same chain reuses the same value; marks after a wide char go to its head
     feed(&t, "\re\xcc\x81\xe4\xb8\xad\xcc\x81");
     CHECK(grid_row(t.grid, 0)->cells[0].cp == e_acute);
     chain = composed_get(&t.composed, grid_row(t.grid, 0)->cells[1].cp);
@@ -445,10 +445,10 @@ test_mouse_modes(void) {
 
     feed(&t, "\x1b[?1000h");
     CHECK(t.modes.mouse_mode == MOUSE_NORMAL);
-    /* switching tracking mode without resetting the old one first */
+    // switching tracking mode without resetting the old one first
     feed(&t, "\x1b[?1002h");
     CHECK(t.modes.mouse_mode == MOUSE_BUTTON);
-    /* resetting a mode that isn't the active one is a no-op */
+    // resetting a mode that isn't the active one is a no-op
     feed(&t, "\x1b[?1000l");
     CHECK(t.modes.mouse_mode == MOUSE_BUTTON);
     feed(&t, "\x1b[?1002l");
@@ -461,10 +461,10 @@ test_mouse_modes(void) {
 
     reply[0] = '\0';
     feed(&t, "\x1b[?1000$p");
-    CHECK(strcmp(reply, "\x1b[?1000;2$y") == 0); /* off */
+    CHECK(strcmp(reply, "\x1b[?1000;2$y") == 0); // off
     reply[0] = '\0';
     feed(&t, "\x1b[?1003$p");
-    CHECK(strcmp(reply, "\x1b[?1003;1$y") == 0); /* on */
+    CHECK(strcmp(reply, "\x1b[?1003;1$y") == 0); // on
     reply[0] = '\0';
     feed(&t, "\x1b[?1006$p");
     CHECK(strcmp(reply, "\x1b[?1006;1$y") == 0);
@@ -472,13 +472,13 @@ test_mouse_modes(void) {
     feed(&t, "\x1b[?1007$p");
     CHECK(strcmp(reply, "\x1b[?1007;1$y") == 0);
 
-    /* DECSTR (soft reset) doesn't touch mouse tracking, matching xterm */
+    // DECSTR (soft reset) doesn't touch mouse tracking, matching xterm
     feed(&t, "\x1b[!p");
     CHECK(t.modes.mouse_mode == MOUSE_ANY);
     CHECK(t.modes.mouse_sgr);
     CHECK(t.modes.mouse_alt_scroll);
 
-    /* RIS (full reset) clears everything, including mouse tracking */
+    // RIS (full reset) clears everything, including mouse tracking
     term_reset(&t);
     CHECK(t.modes.mouse_mode == MOUSE_OFF);
     CHECK(!t.modes.mouse_sgr);
@@ -497,7 +497,7 @@ test_scroll_view(void) {
     CHECK(t.view_offset == 1);
     CHECK(strcmp(view_text(&t, 0), "2  ") == 0);
 
-    /* New output keeps the scrolled-back view on the same text */
+    // New output keeps the scrolled-back view on the same text
     feed(&t, "\r\n5");
     CHECK(t.view_offset == 2);
     CHECK(strcmp(view_text(&t, 0), "2  ") == 0);
@@ -527,14 +527,14 @@ static void
 test_selection_click(void) {
     struct term t;
     term_init(&t, 20, 3, &host, NULL);
-    feed(&t, "foo bar-baz qux");
+    feed(&t, "foo bar,baz 1.2.3.4");
 
-    /* A plain click with no drag deselects (xterm-style) */
+    // A plain click with no drag deselects (xterm-style)
     selection_start(&t, 2, 0, SEL_CHAR);
     selection_finish(&t);
     CHECK(!t.selection.active);
 
-    /* Character selection: click-drag */
+    // Character selection: click-drag
     selection_start(&t, 0, 0, SEL_CHAR);
     selection_update(&t, 2, 0);
     selection_finish(&t);
@@ -543,21 +543,26 @@ test_selection_click(void) {
 
     /* Word selection: a letter selects the run of word chars, a punctuation
      * run selects on its own (foot's isword() behavior) */
-    selection_start(&t, 5, 0, SEL_WORD); /* 'a' in "bar" */
+    selection_start(&t, 5, 0, SEL_WORD); // 'a' in "bar"
     selection_finish(&t);
     CHECK(strcmp(sel_text(&t), "bar") == 0);
 
-    selection_start(&t, 7, 0, SEL_WORD); /* '-' between "bar" and "baz" */
+    selection_start(&t, 7, 0, SEL_WORD); // ',' between "bar" and "baz"
     selection_finish(&t);
-    CHECK(strcmp(sel_text(&t), "-") == 0);
+    CHECK(strcmp(sel_text(&t), ",") == 0);
 
-    /* Dragging a word selection extends a whole word at a time */
+    // '.' is a word char, so an address selects whole
+    selection_start(&t, 14, 0, SEL_WORD); // '2' in "1.2.3.4"
+    selection_finish(&t);
+    CHECK(strcmp(sel_text(&t), "1.2.3.4") == 0);
+
+    // Dragging a word selection extends a whole word at a time
     selection_start(&t, 5, 0, SEL_WORD);
-    selection_update(&t, 9, 0); /* 'a' in "baz" */
+    selection_update(&t, 9, 0); // 'a' in "baz"
     selection_finish(&t);
-    CHECK(strcmp(sel_text(&t), "bar-baz") == 0);
+    CHECK(strcmp(sel_text(&t), "bar,baz") == 0);
 
-    /* Line selection spans a soft-wrapped logical line */
+    // Line selection spans a soft-wrapped logical line
     term_destroy(&t);
     term_init(&t, 5, 4, &host, NULL);
     feed(&t, "abcdefghij");
@@ -571,22 +576,22 @@ static void
 test_selection_extract(void) {
     struct term t;
     term_init(&t, 10, 2, &host, NULL);
-    feed(&t, "a\x1b[5Gb"); /* 'a' at col 0, cursor to col 4 (1-based col 5), 'b' */
+    feed(&t, "a\x1b[5Gb"); // 'a' at col 0, cursor to col 4 (1-based col 5), 'b'
 
-    /* Untouched cells between real text collapse to a single space */
+    // Untouched cells between real text collapse to a single space
     selection_start(&t, 0, 0, SEL_CHAR);
     selection_update(&t, 4, 0);
     selection_finish(&t);
     CHECK(strcmp(sel_text(&t), "a b") == 0);
 
-    /* Trailing untouched cells at the end of a row are dropped entirely */
+    // Trailing untouched cells at the end of a row are dropped entirely
     selection_start(&t, 0, 0, SEL_CHAR);
     selection_update(&t, 9, 0);
     selection_finish(&t);
     CHECK(strcmp(sel_text(&t), "a b") == 0);
     term_destroy(&t);
 
-    /* A composed cell's whole chain is emitted */
+    // A composed cell's whole chain is emitted
     term_init(&t, 5, 1, &host, NULL);
     feed(&t, "e\xcc\x81x");
     selection_start(&t, 0, 0, SEL_CHAR);
@@ -614,13 +619,13 @@ test_selection_scroll_and_resize(void) {
     CHECK(t.selection.coords.start.row == -1);
     CHECK(strcmp(sel_text(&t), "111") == 0);
 
-    /* Scrolled far enough that the ring overwrites it: selection clears */
+    // Scrolled far enough that the ring overwrites it: selection clears
     for (int i = 0; i < 1001; i++)
         feed(&t, "\r\nx");
     CHECK(!t.selection.active);
     term_destroy(&t);
 
-    /* A completed selection's coordinates survive a reflow resize */
+    // A completed selection's coordinates survive a reflow resize
     term_init(&t, 10, 3, &host, NULL);
     feed(&t, "ab\r\ncd\r\nef");
     selection_start(&t, 0, 1, SEL_CHAR);
@@ -651,7 +656,7 @@ test_selection_cancel(void) {
     selection_finish(&t);
     CHECK(t.selection.active);
 
-    /* RIS clears it */
+    // RIS clears it
     feed(&t, "\x1b"
              "c");
     CHECK(!t.selection.active);
@@ -662,7 +667,7 @@ test_selection_cancel(void) {
     selection_finish(&t);
     CHECK(t.selection.active);
 
-    /* Switching to the alternate screen clears it too */
+    // Switching to the alternate screen clears it too
     feed(&t, "\x1b[?1049h");
     CHECK(!t.selection.active);
     term_destroy(&t);
@@ -732,7 +737,7 @@ test_fastfetch_sixel_regression(void) {
         }
     }
 
-    /* Shrinking then widening restores the logo and box cell-for-cell */
+    // Shrinking then widening restores the logo and box cell-for-cell
     struct cell *before = xmalloc((size_t)t.rows * t.cols * sizeof(struct cell));
     for (int r = 0; r < t.rows; r++)
         memcpy(&before[r * t.cols], grid_row(t.grid, r)->cells, t.cols * sizeof(struct cell));

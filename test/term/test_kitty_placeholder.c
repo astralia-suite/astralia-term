@@ -77,7 +77,7 @@ test_diacritic_table_matches_spec_examples(void) {
     CHECK(kitty_diacritic_index(0x305) == 0);
     CHECK(kitty_diacritic_index(0x30D) == 1);
     CHECK(kitty_diacritic_index(0x30E) == 2);
-    CHECK(kitty_diacritic_index('A') == -1); /* not a row/col diacritic */
+    CHECK(kitty_diacritic_index('A') == -1); // not a row/col diacritic
 }
 
 static void
@@ -96,7 +96,7 @@ test_decode_placeholder_full_diacritics(void) {
     struct term t;
     term_init(&t, 10, 2, &host, NULL);
 
-    /* Row 1, column 2, MSB byte 0: diacritic indices 1, 2, 0. */
+    // Row 1, column 2, MSB byte 0: diacritic indices 1, 2, 0.
     feed_placeholder(&t, 0x30D, 0x30E, 0x305);
     struct kitty_placeholder_cell pc =
         kitty_placeholder_decode(&t, grid_row(t.grid, 0)->cells[0].cp);
@@ -158,8 +158,8 @@ test_inheritance_row_then_omitted(void) {
     struct term t;
     term_init(&t, 10, 2, &host, NULL);
     feed(&t, "\x1b[38;5;42m");
-    feed_placeholder(&t, 0x305, 0, 0); /* row 0, column omitted -> fresh run, col 0 */
-    feed_placeholder(&t, 0, 0, 0);     /* everything omitted -> inherit row, col+1 */
+    feed_placeholder(&t, 0x305, 0, 0); // row 0, column omitted -> fresh run, col 0
+    feed_placeholder(&t, 0, 0, 0);     // everything omitted -> inherit row, col+1
     feed_placeholder(&t, 0, 0, 0);
     feed(&t, "\x1b[39m");
 
@@ -183,9 +183,9 @@ test_inheritance_breaks_on_color_change(void) {
     struct term t;
     term_init(&t, 10, 2, &host, NULL);
     feed(&t, "\x1b[38;5;42m");
-    feed_placeholder(&t, 0x305, 0x305, 0); /* row 0, col 0 */
+    feed_placeholder(&t, 0x305, 0x305, 0); // row 0, col 0
     feed(&t, "\x1b[38;5;43m");
-    feed_placeholder(&t, 0, 0, 0); /* different fg: can't inherit */
+    feed_placeholder(&t, 0, 0, 0); // different fg: can't inherit
     feed(&t, "\x1b[39m");
 
     const struct cell *cells = grid_row(t.grid, 0)->cells;

@@ -9,7 +9,7 @@
 #include "core/util.h"
 #include "term/sixel.h"
 
-/* DEC special graphics, 0x5f..0x7e */
+// DEC special graphics, 0x5f..0x7e
 static const uint16_t dec_special[] = {
     0x00a0,
     0x25c6,
@@ -45,7 +45,7 @@ static const uint16_t dec_special[] = {
     0x00b7,
 };
 
-/* Initial 16 colors */
+// Initial 16 colors
 static const uint32_t default_colors16[16] = {
     0x222222,
     0xcc9393,
@@ -123,7 +123,7 @@ reset_state(struct term *t) {
     t->cursor_dirty = true;
 }
 
-/* ---- parser glue ---- */
+// ---- parser glue ----
 
 static void term_execute(struct term *t, uint8_t c);
 static void term_esc(struct term *t, const uint8_t *inter, int n_inter, uint8_t final);
@@ -276,7 +276,7 @@ void term_resize(struct term *t, int cols, int rows) {
     if (cols == t->cols && rows == t->rows)
         return;
 
-    /* A drag in flight isn't tracked through reflow; cancel it outright. */
+    // A drag in flight isn't tracked through reflow; cancel it outright.
     if (t->selection.ongoing)
         selection_clear(t);
     bool sel_active = t->selection.active;
@@ -377,7 +377,7 @@ cur_row(struct term *t) {
     return grid_row(t->grid, t->cursor.row);
 }
 
-/* ---- cursor movement ---- */
+// ---- cursor movement ----
 
 static inline void
 set_cursor(struct term *t, int row, int col) {
@@ -413,7 +413,7 @@ void term_cursor_down(struct term *t, int n) {
     set_cursor(t, MIN(t->cursor.row + n, limit), t->cursor.col);
 }
 
-/* Scrolls the margins up; a scrolled-back view keeps showing the same text. */
+// Scrolls the margins up; a scrolled-back view keeps showing the same text.
 static void
 scroll_region_up(struct term *t, int n) {
     int pushed = grid_scroll_up(t->grid, t->scroll_top, t->scroll_bottom, n, term_blank(t));
@@ -447,7 +447,7 @@ term_reverse_index(struct term *t) {
     t->cursor_dirty = true;
 }
 
-/* ---- erasing and editing ---- */
+// ---- erasing and editing ----
 
 void term_erase_display(struct term *t, int mode) {
     struct cell blank = term_blank(t);
@@ -562,7 +562,7 @@ void term_set_margins(struct term *t, int top, int bottom) {
     term_cursor_to(t, 0, 0);
 }
 
-/* ---- tabs ---- */
+// ---- tabs ----
 
 void term_tab_forward(struct term *t, int n) {
     int col = t->cursor.col;
@@ -595,9 +595,9 @@ void term_tab_clear(struct term *t, int mode) {
         memset(t->tabs, 0, t->cols * sizeof(t->tabs[0]));
 }
 
-/* ---- printing ---- */
+// ---- printing ----
 
-/* Writing w cells at col may split a wide character; blank the orphan. */
+// Writing w cells at col may split a wide character; blank the orphan.
 static void
 fix_wide_overwrite(struct term *t, struct cell *cells, int col, int w) {
     if (cells[col].cp == CELL_SPACER && col > 0)
@@ -614,7 +614,7 @@ wrap_line(struct term *t) {
     term_index(t);
 }
 
-/* Zero-width codepoints join the character written last. */
+// Zero-width codepoints join the character written last.
 static void
 attach_combining(struct term *t, uint32_t cp) {
     int col = t->cursor.wrap_pending ? t->cursor.col : t->cursor.col - 1;
@@ -691,7 +691,7 @@ void term_print(struct term *t, uint32_t cp) {
     t->cursor_dirty = true;
 }
 
-/* ---- cursor save/restore, alt screen ---- */
+// ---- cursor save/restore, alt screen ----
 
 void term_save_cursor(struct term *t) {
     struct saved_cursor *s = &t->saved[t->modes.alt_screen];
@@ -747,7 +747,7 @@ void term_set_alt_screen(struct term *t, bool enable, bool save_cursor, bool cle
     t->cursor_dirty = true;
 }
 
-/* ---- C0 and ESC ---- */
+// ---- C0 and ESC ----
 
 static void
 term_execute(struct term *t, uint8_t c) {
@@ -775,10 +775,10 @@ term_execute(struct term *t, uint8_t c) {
     case '\r':
         set_cursor(t, t->cursor.row, 0);
         break;
-    case 0x0e: /* SO */
+    case 0x0e: // SO
         t->gl = 1;
         break;
-    case 0x0f: /* SI */
+    case 0x0f: // SI
         t->gl = 0;
         break;
     }
@@ -817,7 +817,7 @@ term_esc(struct term *t, const uint8_t *inter, int n_inter, uint8_t final) {
             t->modes.app_keypad = false;
             break;
         case '\\':
-            break; /* ST, already handled by the parser */
+            break; // ST, already handled by the parser
         default:
             LOG_DBG("unhandled ESC %c", final);
             break;
@@ -834,7 +834,7 @@ term_esc(struct term *t, const uint8_t *inter, int n_inter, uint8_t final) {
             t->charsets[inter[0] - '('] = final == '0' ? '0' : 'B';
             return;
         case '#':
-            if (final == '8') { /* DECALN */
+            if (final == '8') { // DECALN
                 struct cell e = {.cp = 'E'};
                 selection_on_rows(t, 0, t->rows - 1);
                 for (int r = 0; r < t->rows; r++)
@@ -849,7 +849,7 @@ term_esc(struct term *t, const uint8_t *inter, int n_inter, uint8_t final) {
     LOG_DBG("unhandled ESC %.*s%c", n_inter, (const char *)inter, final);
 }
 
-/* ---- DCS ---- */
+// ---- DCS ----
 
 /* Sixel is the only DCS shape in scope: no private marker, final 'q'
  * (its own "Pi;Pa;Pv q" header params -- macro id/aspect ratio/background

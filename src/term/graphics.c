@@ -17,32 +17,32 @@
 
 #define GRAPHICS_BUCKETS 61
 #define GRAPHICS_PLACEMENT_BUCKETS 31
-#define GRAPHICS_MAX_FILE_BYTES (96u << 20) /* generous slack over the quota */
+#define GRAPHICS_MAX_FILE_BYTES (96u << 20) // generous slack over the quota
 
 /* Parsed control data for one APC command (first chunk, or a single-shot
  * transmission). Continuation chunks only ever change more/quiet. */
 struct cmd {
-    char action;   /* 't', 'T', 'q', 'd', 'p', or 0 (not given: transmit) */
-    char medium;   /* 'd' direct, 'f' file, 't' temp file, 's' shared memory */
-    char compress; /* 'z' or 0 */
-    char del;      /* 'd' key's value, for action == 'd' */
-    int format;    /* 24, 32 or 100 */
+    char action;   // 't', 'T', 'q', 'd', 'p', or 0 (not given: transmit)
+    char medium;   // 'd' direct, 'f' file, 't' temp file, 's' shared memory
+    char compress; // 'z' or 0
+    char del;      // 'd' key's value, for action == 'd'
+    int format;    // 24, 32 or 100
     int width, height;
     uint32_t id;
     bool have_id;
-    uint32_t number; /* 'I' key: image number, 0 if none */
+    uint32_t number; // 'I' key: image number, 0 if none
     bool have_number;
-    int quiet; /* 0, 1 or 2 */
-    int more;  /* 'm' key: 0 or 1 */
+    int quiet; // 0, 1 or 2
+    int more;  // 'm' key: 0 or 1
 
-    size_t data_size, data_offset; /* 'S=', 'O=': slice of a file / shm object */
+    size_t data_size, data_offset; // 'S=', 'O=': slice of a file / shm object
 
-    /* Placement: virtual (U=1) or at the cursor. */
-    bool virtual_placement; /* 'U=1' */
-    int cols, rows;         /* 'c=', 'r=': grid size in cells */
-    uint32_t placement_id;  /* 'p='; 0 means unspecified */
-    int x, y, w, h;         /* 'x=' 'y=' 'w=' 'h=': source rectangle; cell x/y for d=p/x/y */
-    bool no_move;           /* 'C=1': leave the cursor where it was */
+    // Placement: virtual (U=1) or at the cursor.
+    bool virtual_placement; // 'U=1'
+    int cols, rows;         // 'c=', 'r=': grid size in cells
+    uint32_t placement_id;  // 'p='; 0 means unspecified
+    int x, y, w, h;         // 'x=' 'y=' 'w=' 'h=': source rectangle; cell x/y for d=p/x/y
+    bool no_move;           // 'C=1': leave the cursor where it was
 };
 
 struct graphics_chunk {
@@ -112,7 +112,7 @@ store_unlink_hash(struct graphics_store *g, struct graphics_image *img) {
     *slot = img->hash_next;
 }
 
-/* ---- virtual placements ---- */
+// ---- virtual placements ----
 
 static size_t
 placement_hash(uint32_t image_id, uint32_t placement_id) {
@@ -155,7 +155,7 @@ normalize_src(const struct graphics_image *img, struct graphics_src_rect r) {
     return r;
 }
 
-/* Creates or redefines the virtual placement for (image_id, placement_id). */
+// Creates or redefines the virtual placement for (image_id, placement_id).
 static void
 placement_insert(struct graphics_store *g, const struct graphics_image *img, uint32_t placement_id,
                  int cols, int rows, struct graphics_src_rect src) {
@@ -213,7 +213,7 @@ graphics_placement_get_nonvirtual(struct graphics_store *g, uint32_t handle) {
     return NULL;
 }
 
-/* The client's placement IDs are only unique per image, so this scans. */
+// The client's placement IDs are only unique per image, so this scans.
 static struct graphics_placement *
 find_nonvirtual_by_client(struct graphics_store *g, uint32_t image_id, uint32_t placement_id) {
     for (size_t b = 0; b < g->placement_bucket_count; b++)
@@ -412,7 +412,7 @@ graphics_store_insert(struct graphics_store *g, uint8_t *rgba, int width, int he
     return id;
 }
 
-/* ---- replies ---- */
+// ---- replies ----
 
 static void
 reply(graphics_reply_fn fn, void *user, int quiet, bool ok, uint32_t id, uint32_t number,
@@ -451,7 +451,7 @@ reply_err(graphics_reply_fn fn, void *user, const struct cmd *c, const char *cod
     reply(fn, user, c->quiet, false, c->id, c->number, code_msg);
 }
 
-/* ---- control data parsing ---- */
+// ---- control data parsing ----
 
 static uint32_t
 parse_uint(const char *s, size_t len) {
@@ -549,14 +549,14 @@ parse_control(const uint8_t *data, size_t len, struct cmd *c) {
             c->placement_id = parse_uint(val, vlen);
             break;
         default:
-            break; /* z-layering, relative placement and animation keys: unsupported */
+            break; // z-layering, relative placement and animation keys: unsupported
         }
 
         i = vend < len ? vend + 1 : vend;
     }
 }
 
-/* ---- payload decoding ---- */
+// ---- payload decoding ----
 
 static bool
 has_prefix(const char *s, const char *prefix) {
@@ -727,7 +727,7 @@ decode_png(const uint8_t *data, size_t len, uint8_t **rgba, int *width, int *hei
     return ok;
 }
 
-/* Expands packed 24-bit RGB into the straight-alpha RGBA the store keeps. */
+// Expands packed 24-bit RGB into the straight-alpha RGBA the store keeps.
 static uint8_t *
 expand_rgb(const uint8_t *rgb, int width, int height) {
     size_t n = (size_t)width * height;
@@ -813,15 +813,15 @@ decode_pixels(const struct cmd *c, const uint8_t *enc, size_t enc_len,
     return true;
 }
 
-/* ---- command execution ---- */
+// ---- command execution ----
 
-/* Which placements a delete command targets. */
+// Which placements a delete command targets.
 struct placement_filter {
     bool all;
-    uint32_t image_id; /* used unless all or have_handle */
+    uint32_t image_id; // used unless all or have_handle
     bool have_pid;
     uint32_t pid;
-    bool have_handle; /* a single non-virtual placement, by handle */
+    bool have_handle; // a single non-virtual placement, by handle
     uint32_t handle;
 };
 
@@ -924,7 +924,7 @@ delete_placements_at(struct term *t, int col_lo, int col_hi, int row_lo, int row
     struct rect_hits h = {.col_lo = MAX(col_lo, 0), .col_hi = MIN(col_hi, t->cols - 1)};
     graphics_each_anchor(t, MAX(row_lo, 0), MIN(row_hi, t->rows - 1), collect_rect_hit, &h);
 
-    /* A handle reported twice is simply not found the second time */
+    // A handle reported twice is simply not found the second time
     for (size_t i = 0; i < h.n; i++) {
         struct placement_filter f = {.have_handle = true, .handle = h.handles[i]};
         delete_placements(t, &f, free_images);
@@ -932,7 +932,7 @@ delete_placements_at(struct term *t, int col_lo, int col_hi, int row_lo, int row
     free(h.handles);
 }
 
-/* The newest stored image with the given number, or NULL. */
+// The newest stored image with the given number, or NULL.
 static struct graphics_image *
 find_image_by_number(struct graphics_store *g, uint32_t number) {
     struct graphics_image *best = NULL;
@@ -1066,7 +1066,7 @@ handle_transmit(struct graphics_store *g, const struct cmd *c, const char *paylo
     uint8_t *data = decoded;
     size_t data_len = decoded_len;
     if (c->medium != 'd') {
-        /* The base64 payload is the file path or shared memory name, not data. */
+        // The base64 payload is the file path or shared memory name, not data.
         char *path = xmalloc(decoded_len + 1);
         memcpy(path, decoded, decoded_len);
         path[decoded_len] = '\0';
@@ -1111,7 +1111,7 @@ handle_transmit(struct graphics_store *g, const struct cmd *c, const char *paylo
     }
 
     if (c->action == 'q') {
-        /* Query: report whether this would have worked, without storing it. */
+        // Query: report whether this would have worked, without storing it.
         free(rgba);
         reply_ok(fn, user, c);
         return;
@@ -1167,7 +1167,7 @@ dispatch(struct graphics_store *g, const struct cmd *c, const char *payload, siz
     case 'q':
     case 't':
     case 'T':
-    case 0: /* default: plain transmit */
+    case 0: // default: plain transmit
         handle_transmit(g, c, payload, payload_len, fn, user);
         return;
     default:
@@ -1223,13 +1223,13 @@ void graphics_apc(struct graphics_store *g, const uint8_t *data, size_t len,
         ch->cmd = c;
         chunk_append(ch, payload, payload_len);
         g->chunk = ch;
-        return; /* kitty replies only once, after the final chunk */
+        return; // kitty replies only once, after the final chunk
     }
 
     dispatch(g, &c, payload, payload_len, fn, user);
 }
 
-/* ---- term.h glue ---- */
+// ---- term.h glue ----
 
 static void
 reply_via_term(void *user, const char *text) {

@@ -97,7 +97,7 @@ char *fonts_pattern_with_size(const char *pattern, double size) {
     char *out = xmalloc(cap);
     size_t n = 0;
 
-    /* Copy every ':'-separated token except size/pixelsize, then append ours. */
+    // Copy every ':'-separated token except size/pixelsize, then append ours.
     for (const char *s = pattern; *s != '\0';) {
         const char *end = strchr(s, ':');
         size_t len = end != NULL ? (size_t)(end - s) : strlen(s);

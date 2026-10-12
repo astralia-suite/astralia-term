@@ -8,6 +8,10 @@
 #include "term/composed.h"
 #include "term/term.h"
 
+/* ASCII punctuation that counts as part of a word, kitty's select_by_word_characters
+ * default plus '_', so IPs, paths and URLs select whole on double-click. */
+#define WORD_CHARS "@-./_~?&=%+#"
+
 enum char_class {
     CLASS_BLANK,
     CLASS_WORD,
@@ -27,7 +31,7 @@ static enum char_class
 classify(uint32_t cp) {
     if (cp == 0)
         return CLASS_BLANK;
-    if (cp == '_' || cp >= 0x80 || isalnum((int)cp))
+    if (cp >= 0x80 || isalnum((int)cp) || strchr(WORD_CHARS, (int)cp) != NULL)
         return CLASS_WORD;
     return CLASS_DELIM;
 }
@@ -256,7 +260,7 @@ selection_to_text(const struct term *t, size_t *len) {
             tb_append(&tb, "\n", 1);
     }
 
-    tb_append(&tb, "", 1); /* NUL terminator, not counted in *len */
+    tb_append(&tb, "", 1); // NUL terminator, not counted in *len
     tb.len--;
     if (len != NULL)
         *len = tb.len;

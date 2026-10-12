@@ -26,7 +26,7 @@ default_shell(void) {
     return "/bin/sh";
 }
 
-/* Drop vars by which a parent terminal or editor identifies itself */
+// Drop vars by which a parent terminal or editor identifies itself
 static void
 scrub_host_env(void) {
     static const char *const prefixes[] = {

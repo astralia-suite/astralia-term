@@ -25,7 +25,7 @@ decode(const char *body, uint8_t **rgba, int *w, int *h) {
 
 static void
 check_pixel(const uint8_t *rgba, int width, int x, int y, uint8_t r, uint8_t g, uint8_t b,
-           uint8_t a) {
+            uint8_t a) {
     const uint8_t *p = rgba + ((size_t)y * width + x) * 4;
     if (p[0] != r || p[1] != g || p[2] != b || p[3] != a) {
         fprintf(stderr,
@@ -80,7 +80,7 @@ test_repeat_count(void) {
     free(rgba);
 }
 
-/* Color register reuse: define once, select later by index alone. */
+// Color register reuse: define once, select later by index alone.
 static void
 test_color_reuse(void) {
     uint8_t *rgba;
@@ -115,26 +115,26 @@ test_band_transitions_reference_image(void) {
     CHECK(w == 2);
     CHECK(h == 12);
 
-    check_pixel(rgba, w, 0, 0, 255, 0, 0, 255); /* band 0, col 0, row 0: lit */
+    check_pixel(rgba, w, 0, 0, 255, 0, 0, 255); // band 0, col 0, row 0: lit
     for (int y = 1; y < 6; y++)
-        check_pixel(rgba, w, 0, y, 0, 0, 0, 0); /* band 0, col 0, rows 1-5: unlit */
+        check_pixel(rgba, w, 0, y, 0, 0, 0, 0); // band 0, col 0, rows 1-5: unlit
     for (int y = 0; y < 6; y++)
-        check_pixel(rgba, w, 1, y, 0, 0, 0, 0); /* band 0, col 1: untouched */
+        check_pixel(rgba, w, 1, y, 0, 0, 0, 0); // band 0, col 1: untouched
 
-    check_pixel(rgba, w, 0, 6, 0, 0, 0, 0); /* band 1, col 0: untouched */
+    check_pixel(rgba, w, 0, 6, 0, 0, 0, 0); // band 1, col 0: untouched
     for (int y = 6; y < 12; y++)
-        check_pixel(rgba, w, 1, y, 255, 0, 0, 255); /* band 1, col 1: all lit */
+        check_pixel(rgba, w, 1, y, 255, 0, 0, 255); // band 1, col 1: all lit
 
     free(rgba);
 }
 
-/* Empty/malformed input decodes to nothing, not a crash. */
+// Empty/malformed input decodes to nothing, not a crash.
 static void
 test_empty_input(void) {
     uint8_t *rgba;
     int w, h;
     CHECK(!decode("", &rgba, &w, &h));
-    CHECK(!decode("\"1;1;0;0", &rgba, &w, &h)); /* raster hint alone, no pixels */
+    CHECK(!decode("\"1;1;0;0", &rgba, &w, &h)); // raster hint alone, no pixels
 }
 
 int main(void) {

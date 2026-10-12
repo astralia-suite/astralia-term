@@ -6,9 +6,9 @@
 
 #define W(l, r, u, d) ((uint8_t)((l) | (r) << 2 | (u) << 4 | (d) << 6))
 
-/* U+2500..U+257F as left, right, up, down weights (0 none, 1 light, 2 heavy, 3 double); 0 entries are dashes, arcs and diagonals */
+// U+2500..U+257F as left, right, up, down weights (0 none, 1 light, 2 heavy, 3 double); 0 entries are dashes, arcs and diagonals
 static const uint8_t line_table[0x80] = {
-    /* U+2500..U+250F */
+    // U+2500..U+250F
     W(1, 1, 0, 0),
     W(2, 2, 0, 0),
     W(0, 0, 1, 1),
@@ -25,7 +25,7 @@ static const uint8_t line_table[0x80] = {
     W(0, 2, 0, 1),
     W(0, 1, 0, 2),
     W(0, 2, 0, 2),
-    /* U+2510..U+251F */
+    // U+2510..U+251F
     W(1, 0, 0, 1),
     W(2, 0, 0, 1),
     W(1, 0, 0, 2),
@@ -42,7 +42,7 @@ static const uint8_t line_table[0x80] = {
     W(0, 2, 1, 1),
     W(0, 1, 2, 1),
     W(0, 1, 1, 2),
-    /* U+2520..U+252F */
+    // U+2520..U+252F
     W(0, 1, 2, 2),
     W(0, 2, 2, 1),
     W(0, 2, 1, 2),
@@ -59,7 +59,7 @@ static const uint8_t line_table[0x80] = {
     W(2, 1, 0, 1),
     W(1, 2, 0, 1),
     W(2, 2, 0, 1),
-    /* U+2530..U+253F */
+    // U+2530..U+253F
     W(1, 1, 0, 2),
     W(2, 1, 0, 2),
     W(1, 2, 0, 2),
@@ -76,7 +76,7 @@ static const uint8_t line_table[0x80] = {
     W(2, 1, 1, 1),
     W(1, 2, 1, 1),
     W(2, 2, 1, 1),
-    /* U+2540..U+254F */
+    // U+2540..U+254F
     W(1, 1, 2, 1),
     W(1, 1, 1, 2),
     W(1, 1, 2, 2),
@@ -93,7 +93,7 @@ static const uint8_t line_table[0x80] = {
     0,
     0,
     0,
-    /* U+2550..U+255F */
+    // U+2550..U+255F
     W(3, 3, 0, 0),
     W(0, 0, 3, 3),
     W(0, 3, 0, 1),
@@ -110,7 +110,7 @@ static const uint8_t line_table[0x80] = {
     W(3, 0, 3, 0),
     W(0, 3, 1, 1),
     W(0, 1, 3, 3),
-    /* U+2560..U+256F */
+    // U+2560..U+256F
     W(0, 3, 3, 3),
     W(3, 0, 1, 1),
     W(1, 0, 3, 3),
@@ -127,7 +127,7 @@ static const uint8_t line_table[0x80] = {
     0,
     0,
     0,
-    /* U+2570..U+257F */
+    // U+2570..U+257F
     0,
     0,
     0,
@@ -267,7 +267,7 @@ add_rect(struct boxdraw_rect *out, int *n, int x0, int y0, int x1, int y1, uint8
     out[(*n)++] = (struct boxdraw_rect){x0, y0, x1 - x0, y1 - y0, alpha};
 }
 
-/* Where perpendicular arms meet: the span all strokes cross */
+// Where perpendicular arms meet: the span all strokes cross
 static void
 structure_span(int len, int t_a, int t_b, int *lo, int *hi) {
     *lo = *hi = len / 2;
@@ -294,7 +294,7 @@ line_rects(const struct boxdraw_spec *s, int cw, int ch, int light, struct boxdr
     bool vdouble = s->up == BOXDRAW_DOUBLE || s->down == BOXDRAW_DOUBLE;
     bool hdouble = s->left == BOXDRAW_DOUBLE || s->right == BOXDRAW_DOUBLE;
 
-    /* A double arm meeting a double structure stops its inner stroke at the corner */
+    // A double arm meeting a double structure stops its inner stroke at the corner
     for (int k = 0; k < 2; k++) {
         int x = (cw - 3 * light) / 2 + 2 * light * k;
         if (s->up == BOXDRAW_DOUBLE) {
@@ -391,12 +391,12 @@ struct stroke {
     const struct boxdraw_spec *spec;
     int cw, ch;
     double half;
-    double cx, cy; /* where the two stroke centerlines meet */
-    double ex, ey; /* +1 or -1: direction of the horizontal and vertical arms */
+    double cx, cy; // where the two stroke centerlines meet
+    double ex, ey; // +1 or -1: direction of the horizontal and vertical arms
     double radius;
 };
 
-/* Circular corner of radius min(cx, cy), joined to straight arms */
+// Circular corner of radius min(cx, cy), joined to straight arms
 static bool
 arc_covers(const struct stroke *k, double x, double y) {
     double u = (x - k->cx) * k->ex, v = (y - k->cy) * k->ey;

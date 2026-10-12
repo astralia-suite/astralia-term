@@ -1,4 +1,4 @@
-/* X11 backend: xcb + MIT-SHM, keyboard via xkbcommon-x11. */
+// X11 backend: xcb + MIT-SHM, keyboard via xkbcommon-x11.
 #include "backend/backend.h"
 
 #include <math.h>
@@ -22,7 +22,7 @@
 
 struct x11_buffer {
     struct buffer base;
-    xcb_shm_seg_t seg; /* 0 when not using MIT-SHM */
+    xcb_shm_seg_t seg; // 0 when not using MIT-SHM
     size_t size;
 };
 
@@ -36,11 +36,11 @@ struct backend {
     xcb_window_t win;
     xcb_gcontext_t gc;
     xcb_cursor_context_t *cursor_ctx;
-    xcb_cursor_t cursors[2]; /* indexed by enum cursor_shape; XCB_CURSOR_NONE if unavailable */
+    xcb_cursor_t cursors[2]; // indexed by enum cursor_shape; XCB_CURSOR_NONE if unavailable
     uint8_t depth;
     xcb_visualid_t visual;
-    xcb_colormap_t colormap; /* only for the ARGB visual */
-    bool argb;               /* 32-bit visual: translucency possible */
+    xcb_colormap_t colormap; // only for the ARGB visual
+    bool argb;               // 32-bit visual: translucency possible
     uint32_t max_request_bytes;
 
     xcb_atom_t wm_protocols, wm_delete_window, net_wm_name, utf8_string, net_wm_pid;
@@ -53,7 +53,7 @@ struct backend {
         size_t len;
     } sel_owned[2];
 
-    /* At most one outgoing INCR transfer at a time (see plan's open items). */
+    // At most one outgoing INCR transfer at a time (see plan's open items).
     struct {
         bool active;
         xcb_window_t requestor;
@@ -101,7 +101,7 @@ intern_atom(xcb_connection_t *conn, const char *name) {
     return atom;
 }
 
-/* ---- keyboard ---- */
+// ---- keyboard ----
 
 static bool
 xkb_reload_keymap(struct backend *b) {
@@ -139,19 +139,19 @@ xkb_setup(struct backend *b) {
     if (b->xkb_ctx == NULL || b->kbd_device_id < 0 || !xkb_reload_keymap(b))
         return false;
 
-    /* Follow keymap and modifier-state changes (from xkbcommon's examples) */
+    // Follow keymap and modifier-state changes (from xkbcommon's examples)
     enum {
         events = XCB_XKB_EVENT_TYPE_NEW_KEYBOARD_NOTIFY |
-                 XCB_XKB_EVENT_TYPE_MAP_NOTIFY |
-                 XCB_XKB_EVENT_TYPE_STATE_NOTIFY,
+            XCB_XKB_EVENT_TYPE_MAP_NOTIFY |
+            XCB_XKB_EVENT_TYPE_STATE_NOTIFY,
         nkn_details = XCB_XKB_NKN_DETAIL_KEYCODES,
         map_parts = XCB_XKB_MAP_PART_KEY_TYPES | XCB_XKB_MAP_PART_KEY_SYMS |
-                    XCB_XKB_MAP_PART_MODIFIER_MAP | XCB_XKB_MAP_PART_EXPLICIT_COMPONENTS |
-                    XCB_XKB_MAP_PART_KEY_ACTIONS | XCB_XKB_MAP_PART_VIRTUAL_MODS |
-                    XCB_XKB_MAP_PART_VIRTUAL_MOD_MAP,
+            XCB_XKB_MAP_PART_MODIFIER_MAP | XCB_XKB_MAP_PART_EXPLICIT_COMPONENTS |
+            XCB_XKB_MAP_PART_KEY_ACTIONS | XCB_XKB_MAP_PART_VIRTUAL_MODS |
+            XCB_XKB_MAP_PART_VIRTUAL_MOD_MAP,
         state_details = XCB_XKB_STATE_PART_MODIFIER_BASE | XCB_XKB_STATE_PART_MODIFIER_LATCH |
-                        XCB_XKB_STATE_PART_MODIFIER_LOCK | XCB_XKB_STATE_PART_GROUP_BASE |
-                        XCB_XKB_STATE_PART_GROUP_LATCH | XCB_XKB_STATE_PART_GROUP_LOCK,
+            XCB_XKB_STATE_PART_MODIFIER_LOCK | XCB_XKB_STATE_PART_GROUP_BASE |
+            XCB_XKB_STATE_PART_GROUP_LATCH | XCB_XKB_STATE_PART_GROUP_LOCK,
     };
     static const xcb_xkb_select_events_details_t details = {
         .affectNewKeyboard = nkn_details,
@@ -198,7 +198,7 @@ handle_xkb_event(struct backend *b, xcb_generic_event_t *ev) {
     }
 }
 
-/* Current keyboard modifier state, for key events and pointer events alike. */
+// Current keyboard modifier state, for key events and pointer events alike.
 static unsigned
 mods_from_xkb(struct backend *b) {
     struct {
@@ -262,7 +262,7 @@ handle_key_release(struct backend *b, xcb_key_release_event_t *ev) {
     b->pending_event = next;
 }
 
-/* ---- pointer ---- */
+// ---- pointer ----
 
 /* Wheel is reported as button press/release pairs (detail 4-7); only the
  * press is meaningful, so the release is dropped in dispatch_event(). */
@@ -289,7 +289,7 @@ handle_button_press(struct backend *b, xcb_button_press_event_t *ev, bool presse
                                     mods);
         break;
     default:
-        break; /* side/extra buttons: out of scope */
+        break; // side/extra buttons: out of scope
     }
 }
 
@@ -298,7 +298,7 @@ handle_motion(struct backend *b, xcb_motion_notify_event_t *ev) {
     b->listener->pointer_motion(b->data, ev->event_x, ev->event_y, mods_from_xkb(b));
 }
 
-/* ---- buffers ---- */
+// ---- buffers ----
 
 static void
 buffer_destroy(struct backend *b, struct x11_buffer *buf) {
@@ -331,7 +331,7 @@ buffer_create(struct backend *b, struct x11_buffer *buf, int width, int height) 
         }
         if (data != NULL) {
             seg = xcb_generate_id(b->conn);
-            xcb_shm_attach_fd(b->conn, seg, fd, 1); /* xcb closes fd */
+            xcb_shm_attach_fd(b->conn, seg, fd, 1); // xcb closes fd
         } else {
             LOG_ERRNO("failed to allocate shared memory; falling back to put_image");
             if (fd >= 0)
@@ -390,7 +390,7 @@ put_box(struct backend *b, struct x11_buffer *buf, const pixman_box32_t *box, bo
         return;
     }
 
-    /* No MIT-SHM: send full-width stripes, split to fit the request limit */
+    // No MIT-SHM: send full-width stripes, split to fit the request limit
     int stride = buf->base.stride;
     int rows_per_req = MAX(1, (int)((b->max_request_bytes - 64) / stride));
     for (int row = y; row < y + h; row += rows_per_req) {
@@ -432,7 +432,7 @@ handle_expose(struct backend *b, xcb_expose_event_t *ev) {
     put_box(b, buf, &box, false);
 }
 
-/* ---- clipboard ---- */
+// ---- clipboard ----
 
 static xcb_atom_t
 selection_atom(struct backend *b, enum selection_target target) {
@@ -451,7 +451,7 @@ x11_set_selection(struct backend *b, enum selection_target target, const char *t
 static void
 x11_request_paste(struct backend *b, enum selection_target target) {
     if (b->paste_recv.active)
-        return; /* one paste in flight at a time */
+        return; // one paste in flight at a time
     b->paste_recv.active = true;
     b->paste_recv.incr = false;
     b->paste_recv.target = target;
@@ -635,7 +635,7 @@ handle_property_notify(struct backend *b, xcb_property_notify_event_t *ev) {
         incr_send_chunk(b);
 }
 
-/* ---- event dispatch ---- */
+// ---- event dispatch ----
 
 static bool
 dispatch_event(struct backend *b, xcb_generic_event_t *ev) {
@@ -680,7 +680,7 @@ dispatch_event(struct backend *b, xcb_generic_event_t *ev) {
         break;
     case XCB_BUTTON_RELEASE: {
         xcb_button_release_event_t *e = (void *)ev;
-        if (e->detail >= 1 && e->detail <= 3) /* wheel (4-7) release carries no new info */
+        if (e->detail >= 1 && e->detail <= 3) // wheel (4-7) release carries no new info
             b->listener->pointer_button(b->data, e->detail, false, e->event_x, e->event_y,
                                         mods_from_xkb(b));
         break;
@@ -759,7 +759,7 @@ pre_poll_dispatch(struct loop *loop, void *data) {
     drain_events(data, true);
 }
 
-/* ...and flush requests made by the renderer after it has run. */
+// ...and flush requests made by the renderer after it has run.
 static void
 pre_poll_flush(struct loop *loop, void *data) {
     struct backend *b = data;
@@ -775,7 +775,7 @@ frame_timer_cb(struct loop *loop, int fd, uint32_t events, void *data) {
     return true;
 }
 
-/* ---- setup ---- */
+// ---- setup ----
 
 static void
 set_title(struct backend *b, const char *title) {
@@ -804,7 +804,7 @@ setup_shm(struct backend *b) {
     return true;
 }
 
-/* A 32-bit TrueColor visual, for translucent windows (needs a compositor). */
+// A 32-bit TrueColor visual, for translucent windows (needs a compositor).
 static xcb_visualtype_t *
 find_argb_visual(xcb_screen_t *screen) {
     xcb_depth_iterator_t d = xcb_screen_allowed_depths_iterator(screen);
@@ -822,7 +822,7 @@ find_argb_visual(xcb_screen_t *screen) {
 
 static void x11_destroy(struct backend *b);
 
-/* Xft.dpi / 96 from the root window's RESOURCE_MANAGER; 1.0 when unset or absurd. */
+// Xft.dpi / 96 from the root window's RESOURCE_MANAGER; 1.0 when unset or absurd.
 static double
 read_xft_scale(struct backend *b) {
     xcb_get_property_reply_t *reply = xcb_get_property_reply(
@@ -844,7 +844,7 @@ read_xft_scale(struct backend *b) {
         if (nl != NULL)
             *nl = '\0';
         if (strncmp(line, "Xft.dpi:", 8) == 0) {
-            double dpi = atof(line + 8); /* skips the leading blanks */
+            double dpi = atof(line + 8); // skips the leading blanks
             if (dpi >= 48 && dpi <= 768)
                 scale = dpi / 96.0;
         }
@@ -879,7 +879,7 @@ x11_create(struct loop *loop, const struct backend_listener *listener, void *dat
         xcb_screen_next(&it);
     b->screen = it.data;
 
-    /* The window is sized in pixels, so a HiDPI setup starts proportionally larger */
+    // The window is sized in pixels, so a HiDPI setup starts proportionally larger
     double scale = read_xft_scale(b);
     width = (int)lround(width * scale);
     height = (int)lround(height * scale);
@@ -927,15 +927,15 @@ x11_create(struct loop *loop, const struct backend_listener *listener, void *dat
     /* Border pixel and colormap are required when the visual differs from
      * the parent's; values are ordered by their XCB_CW_* bit. */
     uint32_t values[] = {
-        0,                      /* XCB_CW_BACK_PIXEL: transparent black */
-        0,                      /* XCB_CW_BORDER_PIXEL */
-        XCB_GRAVITY_NORTH_WEST, /* XCB_CW_BIT_GRAVITY */
+        0,                      // XCB_CW_BACK_PIXEL: transparent black
+        0,                      // XCB_CW_BORDER_PIXEL
+        XCB_GRAVITY_NORTH_WEST, // XCB_CW_BIT_GRAVITY
         XCB_EVENT_MASK_EXPOSURE | XCB_EVENT_MASK_STRUCTURE_NOTIFY |
             XCB_EVENT_MASK_KEY_PRESS | XCB_EVENT_MASK_KEY_RELEASE |
             XCB_EVENT_MASK_FOCUS_CHANGE | XCB_EVENT_MASK_BUTTON_PRESS |
             XCB_EVENT_MASK_BUTTON_RELEASE | XCB_EVENT_MASK_POINTER_MOTION |
             XCB_EVENT_MASK_PROPERTY_CHANGE,
-        b->colormap, /* XCB_CW_COLORMAP */
+        b->colormap, // XCB_CW_COLORMAP
     };
     uint32_t mask = XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL | XCB_CW_BIT_GRAVITY |
                     XCB_CW_EVENT_MASK | (b->argb ? XCB_CW_COLORMAP : 0);
@@ -1006,7 +1006,7 @@ x11_destroy(struct backend *b) {
     free(b->paste_recv.data);
 
     if (b->conn != NULL) {
-        /* fd is only registered once setup got that far; a miss just logs */
+        // fd is only registered once setup got that far; a miss just logs
         if (b->frame_timer >= 0)
             loop_del_no_close(b->loop, xcb_get_file_descriptor(b->conn));
         for (size_t i = 0; i < ARRAY_LEN(b->bufs); i++)

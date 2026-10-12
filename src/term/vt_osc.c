@@ -18,7 +18,7 @@ hex_digit(char c) {
     return -1;
 }
 
-/* Parses n hex digits and scales them to 8 bits. */
+// Parses n hex digits and scales them to 8 bits.
 static bool
 hex_component(const char *s, int n, uint32_t *out) {
     if (n < 1 || n > 4)
@@ -35,7 +35,7 @@ hex_component(const char *s, int n, uint32_t *out) {
     return true;
 }
 
-/* XParseColor subset: rgb:r/g/b (1-4 hex digits each) and #rgb forms. */
+// XParseColor subset: rgb:r/g/b (1-4 hex digits each) and #rgb forms.
 static bool
 parse_color(const char *spec, uint32_t *rgb) {
     uint32_t c[3];
@@ -52,7 +52,7 @@ parse_color(const char *spec, uint32_t *rgb) {
         size_t len = strlen(spec + 1);
         if (len == 0 || len % 3 != 0 || len > 12)
             return false;
-        /* Unlike rgb:, #rgb forms keep the most significant digits */
+        // Unlike rgb:, #rgb forms keep the most significant digits
         int n = (int)(len / 3);
         for (int i = 0; i < 3; i++) {
             if (!hex_component(spec + 1 + i * n, MIN(n, 2), &c[i]))
@@ -71,7 +71,7 @@ reply_color(struct term *t, bool bel, const char *prefix, uint32_t rgb) {
     term_reply_st(t, bel, "\033]%s;rgb:%04x/%04x/%04x", prefix, r * 257, g * 257, b * 257);
 }
 
-/* Splits at the next ';', returning the start of the following field or NULL. */
+// Splits at the next ';', returning the start of the following field or NULL.
 static char *
 next_field(char *s) {
     char *semi = strchr(s, ';');
@@ -106,7 +106,7 @@ osc_palette(struct term *t, char *args, bool bel) {
     }
 }
 
-/* OSC 10/11/12; extra arguments apply to the following numbers. */
+// OSC 10/11/12; extra arguments apply to the following numbers.
 static void
 osc_dynamic_colors(struct term *t, int ps, char *args, bool bel) {
     for (; args != NULL && ps <= 12; ps++) {
@@ -227,7 +227,7 @@ void term_osc(struct term *t, const uint8_t *data, size_t len, bool bel) {
             t->host->set_title(t->host_user, args);
         break;
     case 1:
-        break; /* icon name */
+        break; // icon name
     case 4:
         osc_palette(t, args, bel);
         break;

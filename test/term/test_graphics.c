@@ -1,10 +1,10 @@
 /* Kitty graphics protocol transport: control-data parsing, chunk
  * reassembly, raw/zlib/PNG payloads, quota eviction, query and delete. */
+#include <fcntl.h>
 #include <spng.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <fcntl.h>
 #include <sys/mman.h>
 #include <unistd.h>
 #include <zlib.h>
@@ -36,7 +36,7 @@ on_write(void *user, const void *data, size_t len) {
 
 static const struct term_host host = {.write = on_write};
 
-/* One full "ESC _G <ctrl>;<payload> ESC \" command in one shot. */
+// One full "ESC _G <ctrl>;<payload> ESC \" command in one shot.
 static void
 send_apc(struct term *t, const char *ctrl, const uint8_t *payload, size_t payload_len) {
     reply[0] = '\0';
@@ -99,17 +99,17 @@ test_quiet_modes(void) {
 
     uint8_t px[1 * 1 * 4] = {1, 2, 3, 4};
 
-    /* q=1 suppresses the OK reply on success. */
+    // q=1 suppresses the OK reply on success.
     send_apc(&t, "f=32,s=1,v=1,i=3,a=T,q=1", px, sizeof(px));
     CHECK(reply[0] == '\0');
     CHECK(graphics_get(&t.graphics, 3) != NULL);
 
-    /* q=2 suppresses the error reply on failure (bad format here). */
+    // q=2 suppresses the error reply on failure (bad format here).
     send_apc(&t, "f=7,s=1,v=1,i=4,a=T,q=2", px, sizeof(px));
     CHECK(reply[0] == '\0');
     CHECK(graphics_get(&t.graphics, 4) == NULL);
 
-    /* Default (q=0) reports both. */
+    // Default (q=0) reports both.
     send_apc(&t, "f=7,s=1,v=1,i=4,a=T", px, sizeof(px));
     CHECK(strncmp(reply, "\x1b_Gi=4;EINVAL", 13) == 0);
 
@@ -140,7 +140,7 @@ test_delete(void) {
     CHECK(graphics_get(&t.graphics, 11) != NULL);
     CHECK(graphics_get(&t.graphics, 12) != NULL);
 
-    /* Lowercase deletes placements only; the image data stays. */
+    // Lowercase deletes placements only; the image data stays.
     send_apc(&t, "a=d,d=i,i=11", NULL, 0);
     CHECK(strcmp(reply, "\x1b_Gi=11;OK\x1b\\") == 0);
     CHECK(graphics_get(&t.graphics, 11) != NULL);
@@ -170,7 +170,7 @@ test_chunked_transmission(void) {
         px[i] = (uint8_t)(i * 3);
     char *b64 = base64_encode(px, sizeof(px));
     size_t b64_len = strlen(b64);
-    size_t split = (b64_len / 2) & ~(size_t)3; /* keep the first part a multiple of 4 */
+    size_t split = (b64_len / 2) & ~(size_t)3; // keep the first part a multiple of 4
 
     reply[0] = '\0';
     char head[128];
@@ -178,7 +178,7 @@ test_chunked_transmission(void) {
     term_feed(&t, (const uint8_t *)head, strlen(head));
     term_feed(&t, (const uint8_t *)b64, split);
     term_feed(&t, (const uint8_t *)"\x1b\\", 2);
-    CHECK(reply[0] == '\0'); /* no reply until the final chunk */
+    CHECK(reply[0] == '\0'); // no reply until the final chunk
 
     term_feed(&t, (const uint8_t *)"\x1b_Gm=0;", 7);
     term_feed(&t, (const uint8_t *)b64 + split, b64_len - split);
@@ -256,8 +256,8 @@ test_quota(void) {
     struct term t;
     term_init(&t, 10, 2, &host, NULL);
 
-    /* Over quota: compressible all-zero data keeps the wire payload tiny. */
-    size_t over_w = 8192, over_h = 2050; /* 8192*2050*4 = 64 MiB + 64 KiB */
+    // Over quota: compressible all-zero data keeps the wire payload tiny.
+    size_t over_w = 8192, over_h = 2050; // 8192*2050*4 = 64 MiB + 64 KiB
     size_t over_len = over_w * over_h * 4;
     uint8_t *zeros = calloc(1, over_len);
     uLongf comp_cap = compressBound(over_len);
@@ -275,8 +275,8 @@ test_quota(void) {
 
     /* Two images together (40 MiB + 30 MiB) exceed the quota: the older
      * (image 51) is evicted once the newer (image 52) is stored. */
-    size_t a_w = 4096, a_h = 2560; /* 40 MiB */
-    size_t b_w = 4096, b_h = 1920; /* 30 MiB */
+    size_t a_w = 4096, a_h = 2560; // 40 MiB
+    size_t b_w = 4096, b_h = 1920; // 30 MiB
     size_t a_len = a_w * a_h * 4, b_len = b_w * b_h * 4;
     uint8_t *a = calloc(1, a_len);
     uint8_t *b = calloc(1, b_len);
@@ -296,7 +296,7 @@ test_quota(void) {
     send_apc(&t, ctrl, b_comp, b_comp_len);
     CHECK(strcmp(reply, "\x1b_Gi=52;OK\x1b\\") == 0);
 
-    CHECK(graphics_get(&t.graphics, 51) == NULL); /* evicted */
+    CHECK(graphics_get(&t.graphics, 51) == NULL); // evicted
     CHECK(graphics_get(&t.graphics, 52) != NULL);
     CHECK(t.graphics.total_bytes <= GRAPHICS_QUOTA_BYTES);
 
@@ -322,7 +322,7 @@ test_virtual_placement(void) {
     struct graphics_placement *p = graphics_placement_get(&t.graphics, 60, 0);
     CHECK(p != NULL && p->cols == 3 && p->rows == 2);
 
-    /* Combined a=T + U=1: transmit and place in one command. */
+    // Combined a=T + U=1: transmit and place in one command.
     send_apc(&t, "f=32,s=2,v=2,i=61,a=T,U=1,c=4,r=5,p=9", px, sizeof(px));
     CHECK(strcmp(reply, "\x1b_Gi=61;OK\x1b\\") == 0);
     struct graphics_placement *p2 = graphics_placement_get(&t.graphics, 61, 9);
@@ -340,20 +340,20 @@ test_virtual_placement_defaults(void) {
     uint8_t px[1 * 1 * 4] = {0};
     send_apc(&t, "f=32,s=1,v=1,i=70,a=T", px, sizeof(px));
 
-    /* Unknown image id. */
+    // Unknown image id.
     send_apc(&t, "a=p,U=1,i=71,c=1,r=1", NULL, 0);
     CHECK(strncmp(reply, "\x1b_Gi=71;ENOENT", 14) == 0);
 
     /* Missing columns/rows default from the image's pixel size, as for
      * non-virtual placements, so yazi's bare "a=T,U=1" transmit works. */
     term_set_cell_size(&t, 10, 20);
-    uint8_t big[25 * 41 * 4] = {0}; /* ceil(25/10)=3 cols, ceil(41/20)=3 rows */
+    uint8_t big[25 * 41 * 4] = {0}; // ceil(25/10)=3 cols, ceil(41/20)=3 rows
     int cursor_row = t.cursor.row, cursor_col = t.cursor.col;
     send_apc(&t, "f=32,s=25,v=41,i=72,a=T,U=1,p=4", big, sizeof(big));
     CHECK(strcmp(reply, "\x1b_Gi=72;OK\x1b\\") == 0);
     struct graphics_placement *v = graphics_placement_get(&t.graphics, 72, 4);
     CHECK(v != NULL && v->cols == 3 && v->rows == 3);
-    CHECK(t.cursor.row == cursor_row && t.cursor.col == cursor_col); /* virtual: nothing drawn */
+    CHECK(t.cursor.row == cursor_row && t.cursor.col == cursor_col); // virtual: nothing drawn
 
     send_apc(&t, "a=p,U=1,i=70", NULL, 0);
     CHECK(strcmp(reply, "\x1b_Gi=70;OK\x1b\\") == 0);
@@ -381,7 +381,7 @@ test_nonvirtual_placement(void) {
     send_apc(&t, "a=p,i=90,c=3,r=2,p=5", NULL, 0);
     CHECK(strcmp(reply, "\x1b_Gi=90;OK\x1b\\") == 0);
 
-    /* The anchor carries a store-wide handle, not the client's p= key. */
+    // The anchor carries a store-wide handle, not the client's p= key.
     uint32_t handle = grid_row(t.grid, 1)->cells[2].ul;
     struct graphics_placement *p = graphics_placement_get_nonvirtual(&t.graphics, handle);
     CHECK(p != NULL && p->image_id == 90 && p->placement_id == 5 && p->cols == 3 && p->rows == 2);
@@ -394,8 +394,8 @@ test_nonvirtual_placement(void) {
         }
     }
 
-    CHECK(t.cursor.row == 2); /* start row (1) + rows (2) - 1 */
-    CHECK(t.cursor.col == 5); /* start col (2) + cols (3) */
+    CHECK(t.cursor.row == 2); // start row (1) + rows (2) - 1
+    CHECK(t.cursor.col == 5); // start col (2) + cols (3)
 
     term_destroy(&t);
 }
@@ -408,7 +408,7 @@ test_nonvirtual_placement_default_size(void) {
     term_init(&t, 20, 5, &host, NULL);
     term_set_cell_size(&t, 8, 16);
 
-    uint8_t px[20 * 33 * 4] = {0}; /* 20x33 px -> ceil(20/8)=3 cols, ceil(33/16)=3 rows */
+    uint8_t px[20 * 33 * 4] = {0}; // 20x33 px -> ceil(20/8)=3 cols, ceil(33/16)=3 rows
     send_apc(&t, "f=32,s=20,v=33,i=91,a=T", px, sizeof(px));
     CHECK(strcmp(reply, "\x1b_Gi=91;OK\x1b\\") == 0);
 
@@ -439,7 +439,7 @@ test_nonvirtual_placement_via_transmit(void) {
     CHECK(graphics_placement_get_nonvirtual(&t.graphics, c0->ul) != NULL);
     CHECK(t.cursor.row == 1 && t.cursor.col == 2);
 
-    send_apc(&t, "f=32,s=2,v=2,i=93,c=2,r=2,p=8", px, sizeof(px)); /* a omitted: plain transmit */
+    send_apc(&t, "f=32,s=2,v=2,i=93,c=2,r=2,p=8", px, sizeof(px)); // a omitted: plain transmit
     CHECK(!(grid_row(t.grid, 2)->cells[0].attrs & ATTR_IMAGE));
     CHECK(graphics_get(&t.graphics, 93) != NULL);
 
@@ -514,7 +514,7 @@ test_anonymous_transmit_no_reply(void) {
 
     /* Each anonymous image is its own image with its own placement: the first
      * one's anchor (which may be in scrollback by now) keeps showing it. */
-    CHECK(grid_row(t.grid, 1)->cells[2].ul != first); /* second image starts at the cursor */
+    CHECK(grid_row(t.grid, 1)->cells[2].ul != first); // second image starts at the cursor
     CHECK(graphics_placement_get_nonvirtual(&t.graphics, first) != NULL);
 
     term_destroy(&t);
@@ -529,7 +529,7 @@ test_anonymous_placement_no_reply(void) {
     term_set_cell_size(&t, 10, 10);
 
     uint8_t px[2 * 2 * 4] = {0};
-    send_apc(&t, "f=32,s=2,v=2", px, sizeof(px)); /* a omitted: plain transmit, no display */
+    send_apc(&t, "f=32,s=2,v=2", px, sizeof(px)); // a omitted: plain transmit, no display
     CHECK(reply[0] == '\0');
 
     send_apc(&t, "a=p,c=2,r=2,p=9", NULL, 0);
@@ -541,7 +541,7 @@ test_anonymous_placement_no_reply(void) {
     term_destroy(&t);
 }
 
-/* Placement IDs are only unique per image: two images may both use p=1. */
+// Placement IDs are only unique per image: two images may both use p=1.
 static void
 test_placement_ids_are_per_image(void) {
     struct term t;
@@ -553,20 +553,20 @@ test_placement_ids_are_per_image(void) {
     send_apc(&t, "f=32,s=2,v=2,i=2,a=T,c=1,r=1,p=1", px, sizeof(px));
 
     uint32_t h1 = grid_row(t.grid, 0)->cells[0].ul;
-    uint32_t h2 = grid_row(t.grid, 0)->cells[1].ul; /* the cursor moved one column right */
+    uint32_t h2 = grid_row(t.grid, 0)->cells[1].ul; // the cursor moved one column right
     CHECK(h1 != h2);
     struct graphics_placement *p1 = graphics_placement_get_nonvirtual(&t.graphics, h1);
     struct graphics_placement *p2 = graphics_placement_get_nonvirtual(&t.graphics, h2);
     CHECK(p1 != NULL && p1->image_id == 1);
     CHECK(p2 != NULL && p2->image_id == 2);
 
-    /* Re-placing (image 1, p=1) replaces the old placement and blanks its anchor. */
+    // Re-placing (image 1, p=1) replaces the old placement and blanks its anchor.
     t.cursor.row = 3;
     t.cursor.col = 0;
     send_apc(&t, "a=p,i=1,p=1,c=1,r=1", NULL, 0);
     CHECK(!(grid_row(t.grid, 0)->cells[0].attrs & ATTR_IMAGE));
     CHECK(graphics_placement_get_nonvirtual(&t.graphics, h1) == NULL);
-    CHECK(grid_row(t.grid, 0)->cells[1].attrs & ATTR_IMAGE); /* image 2 untouched */
+    CHECK(grid_row(t.grid, 0)->cells[1].attrs & ATTR_IMAGE); // image 2 untouched
     CHECK(grid_row(t.grid, 3)->cells[0].attrs & ATTR_IMAGE);
 
     term_destroy(&t);
@@ -580,13 +580,13 @@ test_image_numbers(void) {
 
     uint8_t px[1 * 1 * 4] = {1, 2, 3, 4};
     send_apc(&t, "f=32,s=1,v=1,I=7", px, sizeof(px));
-    /* The terminal picks the id and reports it together with the number. */
+    // The terminal picks the id and reports it together with the number.
     unsigned id = 0, num = 0;
     CHECK(sscanf(reply, "\x1b_Gi=%u,I=%u;OK", &id, &num) == 2);
     CHECK(id != 0 && num == 7);
     CHECK(graphics_get(&t.graphics, id) != NULL);
 
-    /* A newer image with the same number takes it over. */
+    // A newer image with the same number takes it over.
     send_apc(&t, "f=32,s=1,v=1,I=7", px, sizeof(px));
     unsigned id2 = 0;
     CHECK(sscanf(reply, "\x1b_Gi=%u,I=%u;OK", &id2, &num) == 2);
@@ -612,7 +612,7 @@ test_source_rectangle(void) {
     term_set_cell_size(&t, 10, 10);
 
     uint8_t px[40 * 30 * 4] = {0};
-    /* Crop 20x10 px at (5, 6); no c=/r=, so the size follows the crop: 2x1 cells. */
+    // Crop 20x10 px at (5, 6); no c=/r=, so the size follows the crop: 2x1 cells.
     send_apc(&t, "f=32,s=40,v=30,i=1,a=T,x=5,y=6,w=20,h=10", px, sizeof(px));
     struct graphics_placement *p =
         graphics_placement_get_nonvirtual(&t.graphics, grid_row(t.grid, 0)->cells[0].ul);
@@ -620,7 +620,7 @@ test_source_rectangle(void) {
     CHECK(p != NULL && p->src_x == 5 && p->src_y == 6 && p->src_w == 20 && p->src_h == 10);
     CHECK(p != NULL && p->cols == 2 && p->rows == 1);
 
-    /* An oversized rectangle is clamped to the image; a=p on a virtual one too. */
+    // An oversized rectangle is clamped to the image; a=p on a virtual one too.
     send_apc(&t, "a=p,i=1,U=1,c=2,r=2,p=3,x=30,y=20,w=99,h=99", NULL, 0);
     struct graphics_placement *v = graphics_placement_get(&t.graphics, 1, 3);
     CHECK(v != NULL && v->src_x == 30 && v->src_y == 20 && v->src_w == 10 && v->src_h == 10);
@@ -647,7 +647,7 @@ test_cursor_stays_with_c1(void) {
     t.cursor.col = 0;
     send_apc(&t, "a=p,i=1,c=2,r=2,C=1", NULL, 0);
     CHECK(t.cursor.row == 3 && t.cursor.col == 0);
-    CHECK(grid_row(t.grid, 3)->cells[0].attrs & ATTR_IMAGE); /* the anchor scrolled up with it */
+    CHECK(grid_row(t.grid, 3)->cells[0].attrs & ATTR_IMAGE); // the anchor scrolled up with it
     CHECK(!(grid_row(t.grid, 4)->cells[0].attrs & ATTR_IMAGE));
 
     term_destroy(&t);
@@ -660,23 +660,23 @@ test_delete_by_position(void) {
     term_set_cell_size(&t, 10, 10);
 
     uint8_t px[2 * 2 * 4] = {0};
-    send_apc(&t, "f=32,s=2,v=2,i=1,a=T,c=2,r=2", px, sizeof(px));   /* rows 0-1, cols 0-1 */
+    send_apc(&t, "f=32,s=2,v=2,i=1,a=T,c=2,r=2", px, sizeof(px)); // rows 0-1, cols 0-1
     t.cursor.row = 3;
     t.cursor.col = 5;
-    send_apc(&t, "f=32,s=2,v=2,i=2,a=T,c=2,r=2", px, sizeof(px));   /* rows 3-4, cols 5-6 */
+    send_apc(&t, "f=32,s=2,v=2,i=2,a=T,c=2,r=2", px, sizeof(px)); // rows 3-4, cols 5-6
 
-    /* d=p: the placement covering column 2, row 2 (1-based), off its anchor -- image 1's. */
+    // d=p: the placement covering column 2, row 2 (1-based), off its anchor -- image 1's.
     send_apc(&t, "a=d,d=p,x=2,y=2", NULL, 0);
     CHECK(!(grid_row(t.grid, 0)->cells[0].attrs & ATTR_IMAGE));
     CHECK(grid_row(t.grid, 3)->cells[5].attrs & ATTR_IMAGE);
-    CHECK(graphics_get(&t.graphics, 1) != NULL); /* lowercase keeps the data */
+    CHECK(graphics_get(&t.graphics, 1) != NULL); // lowercase keeps the data
 
-    /* d=X: column 7 (1-based) crosses image 2 right of its anchor; uppercase frees its data. */
+    // d=X: column 7 (1-based) crosses image 2 right of its anchor; uppercase frees its data.
     send_apc(&t, "a=d,d=X,x=7", NULL, 0);
     CHECK(!(grid_row(t.grid, 3)->cells[5].attrs & ATTR_IMAGE));
     CHECK(graphics_get(&t.graphics, 2) == NULL);
 
-    /* d=c: the cell under the cursor. */
+    // d=c: the cell under the cursor.
     t.cursor.row = 0;
     t.cursor.col = 0;
     send_apc(&t, "a=T,f=32,s=2,v=2,i=3,c=2,r=2", px, sizeof(px));
@@ -697,7 +697,7 @@ count_anchor(void *user, struct graphics_placement *p, int row, int col) {
     (*hits)++;
 }
 
-/* An anchor above the queried rows is reported while its image reaches them. */
+// An anchor above the queried rows is reported while its image reaches them.
 static void
 test_each_anchor(void) {
     struct term t;
@@ -706,7 +706,7 @@ test_each_anchor(void) {
 
     uint8_t px[2 * 2 * 4] = {0};
     t.cursor.col = 1;
-    send_apc(&t, "f=32,s=2,v=2,i=1,a=T,c=2,r=3", px, sizeof(px)); /* rows 0-2, cols 1-2 */
+    send_apc(&t, "f=32,s=2,v=2,i=1,a=T,c=2,r=3", px, sizeof(px)); // rows 0-2, cols 1-2
 
     int hits = 0;
     graphics_each_anchor(&t, 2, 2, count_anchor, &hits);
@@ -736,9 +736,9 @@ test_temp_file_medium(void) {
     CHECK(strcmp(reply, "\x1b_Gi=1;OK\x1b\\") == 0);
     struct graphics_image *img = graphics_get(&t.graphics, 1);
     CHECK(img != NULL && memcmp(img->rgba, px, sizeof(px)) == 0);
-    CHECK(access(path, F_OK) != 0); /* the terminal deleted it */
+    CHECK(access(path, F_OK) != 0); // the terminal deleted it
 
-    /* A plain t=f file is never deleted, and S=/O= select a slice of it. */
+    // A plain t=f file is never deleted, and S=/O= select a slice of it.
     path = "/tmp/astralia-test-plain.rgba";
     f = fopen(path, "wb");
     CHECK(f != NULL);
@@ -755,7 +755,7 @@ test_temp_file_medium(void) {
     CHECK(access(path, F_OK) == 0);
     unlink(path);
 
-    /* Device and pseudo-filesystem paths are refused outright. */
+    // Device and pseudo-filesystem paths are refused outright.
     send_apc(&t, "f=32,s=1,v=1,i=3,t=f", (const uint8_t *)"/dev/zero", 9);
     CHECK(strncmp(reply, "\x1b_Gi=3;EBADF", 12) == 0);
     CHECK(graphics_get(&t.graphics, 3) == NULL);
@@ -782,7 +782,7 @@ test_shared_memory_medium(void) {
     CHECK(strcmp(reply, "\x1b_Gi=1;OK\x1b\\") == 0);
     struct graphics_image *img = graphics_get(&t.graphics, 1);
     CHECK(img != NULL && memcmp(img->rgba, px, sizeof(px)) == 0);
-    CHECK(shm_open(name, O_RDONLY, 0) < 0); /* ownership passed to the terminal */
+    CHECK(shm_open(name, O_RDONLY, 0) < 0); // ownership passed to the terminal
 
     term_destroy(&t);
 }
@@ -792,14 +792,13 @@ test_compressed_png(void) {
     struct term t;
     term_init(&t, 10, 5, &host, NULL);
 
-    /* Build a 2x2 PNG with spng, then send it deflated (o=z). */
+    // Build a 2x2 PNG with spng, then send it deflated (o=z).
     uint8_t px[2 * 2 * 4];
     for (size_t i = 0; i < sizeof(px); i++)
         px[i] = (uint8_t)(i * 9);
 
     spng_ctx *enc = spng_ctx_new(SPNG_CTX_ENCODER);
-    struct spng_ihdr ihdr = {.width = 2, .height = 2, .bit_depth = 8,
-                             .color_type = SPNG_COLOR_TYPE_TRUECOLOR_ALPHA};
+    struct spng_ihdr ihdr = {.width = 2, .height = 2, .bit_depth = 8, .color_type = SPNG_COLOR_TYPE_TRUECOLOR_ALPHA};
     spng_set_option(enc, SPNG_ENCODE_TO_BUFFER, 1);
     spng_set_ihdr(enc, &ihdr);
     CHECK(spng_encode_image(enc, px, sizeof(px), SPNG_FMT_PNG, SPNG_ENCODE_FINALIZE) == 0);
@@ -834,7 +833,7 @@ test_malformed_apc_is_ignored(void) {
     term_feed(&t, (const uint8_t *)"\x1b_Xnot-a-graphics-command\x1b\\", 27);
     CHECK(reply[0] == '\0');
 
-    /* The parser must still work normally afterwards. */
+    // The parser must still work normally afterwards.
     term_feed(&t, (const uint8_t *)"A", 1);
     CHECK(grid_row(t.grid, 0)->cells[0].cp == 'A');
 

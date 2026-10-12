@@ -8,9 +8,9 @@
 #include "term/hyperlink.h"
 #include "term/term.h"
 
-#define MAX_WRAP_ROWS 8 /* rows joined above and below the pointer */
+#define MAX_WRAP_ROWS 8 // rows joined above and below the pointer
 
-/* Same set main.c's open_url() allows, so every underlined URL can open */
+// Same set main.c's open_url() allows, so every underlined URL can open
 static const char *const schemes[] = {"http://", "https://", "mailto:", "ftp://", "file://"};
 
 static struct cell *
@@ -74,7 +74,7 @@ next_text_url(const char *buf, int n, int from, int *s, int *e) {
     return false;
 }
 
-/* The soft-wrapped line around row: first row and cell count. */
+// The soft-wrapped line around row: first row and cell count.
 static int
 line_bounds(struct term *t, int row, int *n) {
     struct grid *g = t->grid;
@@ -87,7 +87,7 @@ line_bounds(struct term *t, int row, int *n) {
     return top;
 }
 
-/* The line as URL characters, or NULL if it can't hold a URL; caller frees. */
+// The line as URL characters, or NULL if it can't hold a URL; caller frees.
 static char *
 line_text(struct term *t, int top, int n) {
     char *buf = xmalloc(n + 1);

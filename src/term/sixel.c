@@ -16,14 +16,14 @@
 #include "core/util.h"
 
 struct sixel_decoder {
-    uint8_t *rgba;  /* width * rows_alloc * 4, straight alpha, row-major */
-    int width;      /* current pixel width; grows to fit as needed */
-    int height;     /* highest row touched by a sixel char, + 1 */
-    int rows_alloc; /* allocated rows (>= height), grows in bands of 6 */
+    uint8_t *rgba;  // width * rows_alloc * 4, straight alpha, row-major
+    int width;      // current pixel width; grows to fit as needed
+    int height;     // highest row touched by a sixel char, + 1
+    int rows_alloc; // allocated rows (>= height), grows in bands of 6
 
-    int col, row; /* cursor, in pixels; row is the top of the current band */
+    int col, row; // cursor, in pixels; row is the top of the current band
 
-    uint32_t palette[SIXEL_MAX_COLORS]; /* packed 0x00RRGGBB, opaque */
+    uint32_t palette[SIXEL_MAX_COLORS]; // packed 0x00RRGGBB, opaque
     unsigned color_idx;
     uint32_t color;
 
@@ -32,7 +32,10 @@ struct sixel_decoder {
     int nparams;
     uint32_t param;
 
-    enum { ST_MAIN, ST_RASTER, ST_REPEAT, ST_COLOR } state;
+    enum { ST_MAIN,
+           ST_RASTER,
+           ST_REPEAT,
+           ST_COLOR } state;
 
     bool error;
 };
@@ -116,7 +119,7 @@ ensure_height(struct sixel_decoder *d, int min_height) {
         size_t stride = (size_t)d->width * 4;
         uint8_t *new_rgba = xrealloc(d->rgba, stride * (size_t)new_rows_alloc);
         memset(new_rgba + stride * (size_t)d->rows_alloc, 0,
-              stride * (size_t)(new_rows_alloc - d->rows_alloc));
+               stride * (size_t)(new_rows_alloc - d->rows_alloc));
         d->rgba = new_rgba;
         d->rows_alloc = new_rows_alloc;
     }
@@ -176,9 +179,9 @@ finish_color(struct sixel_decoder *d) {
     if (d->nparams > 4) {
         uint32_t format = d->params[1];
         int c1 = (int)d->params[2], c2 = (int)d->params[3], c3 = (int)d->params[4];
-        if (format == 1) /* HLS: Pc;1;hue(0-360);lum(0-100);sat(0-100) */
+        if (format == 1) // HLS: Pc;1;hue(0-360);lum(0-100);sat(0-100)
             d->palette[d->color_idx] = hls_to_rgb(MIN(c1, 360), MIN(c2, 100), MIN(c3, 100));
-        else if (format == 2) { /* RGB: Pc;2;r(0-100);g(0-100);b(0-100) */
+        else if (format == 2) { // RGB: Pc;2;r(0-100);g(0-100);b(0-100)
             uint32_t r = 255 * (unsigned)MIN(c1, 100) / 100;
             uint32_t g = 255 * (unsigned)MIN(c2, 100) / 100;
             uint32_t b = 255 * (unsigned)MIN(c3, 100) / 100;
@@ -209,10 +212,10 @@ dispatch_main(struct sixel_decoder *d, uint8_t c) {
         d->nparams = 0;
         d->param = 0;
         break;
-    case '$': /* carriage return: back to the start of the current band */
+    case '$': // carriage return: back to the start of the current band
         d->col = 0;
         break;
-    case '-': /* graphical new line: next 6-row band */
+    case '-': // graphical new line: next 6-row band
         d->row += 6;
         d->col = 0;
         break;
@@ -224,7 +227,7 @@ dispatch_main(struct sixel_decoder *d, uint8_t c) {
     case '\r':
         break;
     default:
-        break; /* lenient: ignore anything else rather than aborting */
+        break; // lenient: ignore anything else rather than aborting
     }
 }
 

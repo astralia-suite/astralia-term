@@ -5,7 +5,7 @@
 
 struct term;
 
-/* Kitty graphics protocol: Unicode placeholder base codepoint (U+10EEEE). */
+// Kitty graphics protocol: Unicode placeholder base codepoint (U+10EEEE).
 #define KITTY_PLACEHOLDER_CP 0x10EEEEu
 
 /* Decoded row/col/MSB diacritics for one placeholder cell (the placeholder

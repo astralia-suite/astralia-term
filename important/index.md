@@ -10,11 +10,11 @@
 
 ## src
 
-- `main.c`: Arguments, backend selection, pty/term/renderer wiring, `term_host` callbacks, scrollback/font-size keys, mouse reporting/wheel-scroll/1007 alt-scroll, click-counted selection, clipboard, link hover (hand cursor) and Ctrl+click `xdg-open` in any mouse mode, scale-driven font reload, visual bell, blink and 2026 timers. Stays at `src/` root: wires every subsystem below, owns none of them.
+- `main.c`: Arguments, default `daemon()` detach with stdio on `/dev/null` and stderr logged to the state-dir file (`-F`/`-d` stay attached), backend selection, pty/term/renderer wiring, `term_host` callbacks, scrollback/font-size keys, mouse reporting/wheel-scroll/1007 alt-scroll, click-counted selection, clipboard, link hover (hand cursor) and Ctrl+click `xdg-open` in any mouse mode, scale-driven font reload, visual bell, blink and 2026 timers. Stays at `src/` root: wires every subsystem below, owns none of them.
 
 ## src/core
 
-- `util.h`+`.c`: `xmalloc` family, `MIN`/`MAX`/`CLAMP`/`ARRAY_LEN`, `likely`/`unlikely`, `LOG_MODULE` logging, table-driven `cp_width()`.
+- `util.h`+`.c`: `xmalloc` family, `MIN`/`MAX`/`CLAMP`/`ARRAY_LEN`, `likely`/`unlikely`, `LOG_MODULE` logging, `log_redirect_to_state_file()`, table-driven `cp_width()`.
 - `loop.h`+`.c`: Single-threaded `epoll` fd/timer/signal/hook registry; `signalfd` signals, `timerfd` timers, `HIGH`/`NORMAL`/`LOW` hooks. Port of foot `fdm.c`.
 - `pty.h`+`.c`: `posix_openpt` pty spawn of `argv`/`$SHELL`/`/bin/sh`, `TIOCSWINSZ` resize, buffered non-blocking `pty_write` waiting on `EPOLLOUT`.
 - `base64.h`+`.c`: Base64 decode and encode for OSC 52 and, later, kitty graphics payloads.

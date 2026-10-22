@@ -25,6 +25,8 @@ enum log_level { LOG_LEVEL_ERR,
 void log_msg(enum log_level lvl, const char *module, int errnum,
              const char *fmt, ...) __attribute__((format(printf, 4, 5)));
 void log_set_level(enum log_level lvl);
+// Point stderr at `$XDG_STATE_HOME/astralia-term/astralia-term.log` (default `~/.local/state`), appending
+bool log_redirect_to_state_file(void);
 
 #ifndef LOG_MODULE
 #define LOG_MODULE "astralia"

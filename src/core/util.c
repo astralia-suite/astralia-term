@@ -1,9 +1,13 @@
 #include "core/util.h"
 
+#include <fcntl.h>
+#include <limits.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 #include "core/width_table.h"
 
@@ -49,6 +53,45 @@ xstrdup(const char *s) {
 
 void log_set_level(enum log_level lvl) {
     max_level = lvl;
+}
+
+bool log_redirect_to_state_file(void) {
+    const char *state = getenv("XDG_STATE_HOME");
+    const char *home = getenv("HOME");
+    char dir[PATH_MAX], path[PATH_MAX];
+
+    int n;
+    if (state != NULL && state[0] == '/')
+        n = snprintf(dir, sizeof(dir), "%s/astralia-term", state);
+    else if (home != NULL && home[0] != '\0')
+        n = snprintf(dir, sizeof(dir), "%s/.local/state/astralia-term", home);
+    else
+        return false;
+    if (n < 0 || (size_t)n >= sizeof(dir))
+        return false;
+
+    // mkdir -p
+    for (char *p = dir + 1;; p++) {
+        if (*p != '/' && *p != '\0')
+            continue;
+        char saved = *p;
+        *p = '\0';
+        if (mkdir(dir, 0755) < 0 && errno != EEXIST)
+            return false;
+        *p = saved;
+        if (saved == '\0')
+            break;
+    }
+
+    n = snprintf(path, sizeof(path), "%s/astralia-term.log", dir);
+    if (n < 0 || (size_t)n >= sizeof(path))
+        return false;
+    int fd = open(path, O_WRONLY | O_APPEND | O_CREAT | O_CLOEXEC, 0600);
+    if (fd < 0)
+        return false;
+    bool ok = dup2(fd, STDERR_FILENO) >= 0;
+    close(fd);
+    return ok;
 }
 
 void log_msg(enum log_level lvl, const char *module, int errnum, const char *fmt, ...) {

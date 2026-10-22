@@ -776,7 +776,8 @@ usage(const char *prog) {
            "  -f, --font=PATTERN     fontconfig pattern (default: " DEFAULT_FONT ")\n"
            "  -b, --backend=NAME     wayland or x11 (default: auto)\n"
            "  -e                     run COMMAND instead of $SHELL\n"
-           "  -d, --debug            verbose logging\n"
+           "  -F, --foreground       stay attached to the launching terminal and log to it\n"
+           "  -d, --debug            verbose logging (implies --foreground)\n"
            "  -v, --version          print version and exit\n"
            "  -h, --help             print this help and exit\n",
            prog);
@@ -785,10 +786,12 @@ usage(const char *prog) {
 int main(int argc, char *argv[]) {
     const char *font_name = DEFAULT_FONT;
     const char *backend_name = NULL;
+    bool foreground = false;
 
     static const struct option longopts[] = {
         {"font", required_argument, NULL, 'f'},
         {"backend", required_argument, NULL, 'b'},
+        {"foreground", no_argument, NULL, 'F'},
         {"debug", no_argument, NULL, 'd'},
         {"version", no_argument, NULL, 'v'},
         {"help", no_argument, NULL, 'h'},
@@ -796,7 +799,7 @@ int main(int argc, char *argv[]) {
     };
 
     int opt;
-    while ((opt = getopt_long(argc, argv, "+f:b:dvhe", longopts, NULL)) != -1) {
+    while ((opt = getopt_long(argc, argv, "+f:b:Fdvhe", longopts, NULL)) != -1) {
         switch (opt) {
         case 'f':
             font_name = optarg;
@@ -804,7 +807,11 @@ int main(int argc, char *argv[]) {
         case 'b':
             backend_name = optarg;
             break;
+        case 'F':
+            foreground = true;
+            break;
         case 'd':
+            foreground = true;
             log_set_level(LOG_LEVEL_DBG);
             break;
         case 'v':
@@ -822,6 +829,14 @@ int main(int argc, char *argv[]) {
     }
 done_opts:;
     char **cmd = optind < argc ? &argv[optind] : NULL;
+
+    // Keep the cwd: the shell inherits it. Stdio goes to /dev/null, then stderr to the state-dir log file.
+    if (!foreground && daemon(1, 0) < 0) {
+        LOG_ERRNO("daemon failed");
+        return 1;
+    }
+    if (!foreground)
+        log_redirect_to_state_file();
 
     ensure_utf8_locale();
     signal(SIGPIPE, SIG_IGN);

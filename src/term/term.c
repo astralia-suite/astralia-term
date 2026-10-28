@@ -6,6 +6,7 @@
 #include <string.h>
 
 #define LOG_MODULE "term"
+#include "core/palette_file.h"
 #include "core/util.h"
 #include "term/sixel.h"
 
@@ -81,6 +82,42 @@ init_initial_colors(struct term *t) {
 
     t->initial_fg = 0xdcdccc;
     t->initial_bg = 0x000000;
+    t->initial_cursor_set = false;
+    t->link_fg = 0x9b57f4;
+}
+
+void term_apply_palette(struct term *t, const struct palette_file *p) {
+    for (int i = 0; i < PALETTE_FILE_COLORS; i++) {
+        if (!p->has_color[i])
+            continue;
+        if (t->palette[i] == t->initial_palette[i])
+            t->palette[i] = p->colors[i];
+        t->initial_palette[i] = p->colors[i];
+    }
+    if (p->has_fg) {
+        if (t->default_fg == t->initial_fg)
+            t->default_fg = p->fg;
+        t->initial_fg = p->fg;
+    }
+    if (p->has_bg) {
+        if (t->default_bg == t->initial_bg)
+            t->default_bg = p->bg;
+        t->initial_bg = p->bg;
+    }
+    if (p->has_cursor) {
+        bool follows = t->cursor_color_set == t->initial_cursor_set &&
+                       (!t->cursor_color_set || t->cursor_color == t->initial_cursor);
+        t->initial_cursor = p->cursor;
+        t->initial_cursor_set = true;
+        if (follows) {
+            t->cursor_color = p->cursor;
+            t->cursor_color_set = true;
+        }
+    }
+    if (p->has_color[5])
+        t->link_fg = p->colors[5];
+    t->colors_changed = true;
+    t->cursor_dirty = true;
 }
 
 static void
@@ -88,7 +125,8 @@ reset_colors(struct term *t) {
     memcpy(t->palette, t->initial_palette, sizeof(t->palette));
     t->default_fg = t->initial_fg;
     t->default_bg = t->initial_bg;
-    t->cursor_color_set = false;
+    t->cursor_color = t->initial_cursor;
+    t->cursor_color_set = t->initial_cursor_set;
     t->colors_changed = true;
 }
 

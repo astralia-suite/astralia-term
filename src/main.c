@@ -1,6 +1,7 @@
 #include <fcntl.h>
 #include <getopt.h>
 #include <langinfo.h>
+#include <limits.h>
 #include <locale.h>
 #include <math.h>
 #include <signal.h>
@@ -10,6 +11,7 @@
 #include <string.h>
 #include <strings.h>
 #include <sys/epoll.h>
+#include <sys/inotify.h>
 #include <sys/wait.h>
 #include <time.h>
 #include <unistd.h>
@@ -19,6 +21,7 @@
 #define LOG_MODULE "main"
 #include "backend/backend.h"
 #include "core/loop.h"
+#include "core/palette_file.h"
 #include "core/pty.h"
 #include "core/util.h"
 #include "input/input.h"
@@ -85,6 +88,9 @@ struct app {
     bool pointer_seen;
     struct grid_point pointer; // screen cell under the pointer, for link hover
     bool link_clicked;         // swallow the release of a Ctrl+click that opened a link
+
+    char palette_path[PATH_MAX];
+    int palette_fd; // inotify on the palette directory; -1 = not watching
 
     bool quit;
     int exit_code;
@@ -731,6 +737,58 @@ render_hook(struct loop *loop, void *data) {
     pixman_region32_fini(&damage);
 }
 
+// ---- palette sync ----
+
+static void
+load_palette(struct app *app) {
+    struct palette_file p;
+    if (palette_file_load(app->palette_path, &p))
+        term_apply_palette(&app->term, &p);
+}
+
+static bool
+palette_cb(struct loop *loop, int fd, uint32_t events, void *data) {
+    struct app *app = data;
+    const char *name = strrchr(app->palette_path, '/') + 1;
+    bool changed = false;
+    char buf[4096] __attribute__((aligned(__alignof__(struct inotify_event))));
+
+    ssize_t n;
+    while ((n = read(fd, buf, sizeof(buf))) > 0) {
+        for (char *p = buf; p < buf + n;) {
+            const struct inotify_event *ev = (const struct inotify_event *)p;
+            if ((ev->mask & (IN_MOVED_TO | IN_CLOSE_WRITE)) && ev->len > 0 &&
+                strcmp(ev->name, name) == 0)
+                changed = true;
+            p += sizeof(*ev) + ev->len;
+        }
+    }
+    if (changed)
+        load_palette(app);
+    return true;
+}
+
+static void
+watch_palette(struct app *app) {
+    if (!palette_file_path(app->palette_path, sizeof(app->palette_path)))
+        return;
+    load_palette(app);
+
+    char dir[PATH_MAX];
+    snprintf(dir, sizeof(dir), "%s", app->palette_path);
+    *strrchr(dir, '/') = '\0';
+
+    int fd = inotify_init1(IN_NONBLOCK | IN_CLOEXEC);
+    if (fd < 0)
+        return;
+    if (inotify_add_watch(fd, dir, IN_MOVED_TO | IN_CLOSE_WRITE) < 0 ||
+        !loop_add(app->loop, fd, EPOLLIN, palette_cb, app)) {
+        close(fd);
+        return;
+    }
+    app->palette_fd = fd;
+}
+
 // ---- startup ----
 
 static const struct backend_ops *
@@ -848,6 +906,7 @@ done_opts:;
         .blink_timer = -1,
         .sync_timer = -1,
         .bell_timer = -1,
+        .palette_fd = -1,
         .scale = 1.0,
     };
 
@@ -890,6 +949,7 @@ done_opts:;
 
     term_init(&app.term, cols, rows, &term_host, &app);
     term_set_cell_size(&app.term, app.fonts.cell_width, app.fonts.cell_height);
+    watch_palette(&app);
 
     app.backend = app.ops->create(app.loop, &listener, &app, app.width, app.height,
                                   APP_ID, "astralia-term");
@@ -928,6 +988,8 @@ out:
             loop_del(app.loop, app.sync_timer);
         if (app.bell_timer >= 0)
             loop_del(app.loop, app.bell_timer);
+        if (app.palette_fd >= 0)
+            loop_del(app.loop, app.palette_fd);
         loop_signal_del(app.loop, SIGCHLD);
         loop_signal_del(app.loop, SIGTERM);
         loop_signal_del(app.loop, SIGINT);

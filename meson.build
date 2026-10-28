@@ -76,6 +76,7 @@ core_sources = files(
   'src/term/hyperlink.c',
   'src/term/vt_osc.c',
   'src/core/base64.c',
+  'src/core/palette_file.c',
   'src/term/selection.c',
   'src/term/url.c',
   'src/term/graphics.c',
@@ -155,6 +156,8 @@ test('grid', executable('test_grid', 'test/term/test_grid.c',
            '-DFASTFETCH_KITTY_REGRESSION_RAW="' +
            meson.current_source_dir() / 'test/term/testdata/fastfetch-kitty-regression.raw' + '"']))
 test('osc', executable('test_osc', 'test/term/test_osc.c',
+  link_with: core, dependencies: [zlib, libspng, math], include_directories: src_inc))
+test('palette', executable('test_palette', 'test/term/test_palette.c',
   link_with: core, dependencies: [zlib, libspng, math], include_directories: src_inc))
 test('url', executable('test_url', 'test/term/test_url.c',
   link_with: core, dependencies: [zlib, libspng, math], include_directories: src_inc))

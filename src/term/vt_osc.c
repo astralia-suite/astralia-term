@@ -256,7 +256,8 @@ void term_osc(struct term *t, const uint8_t *data, size_t len, bool bel) {
         t->colors_changed = true;
         break;
     case 112:
-        t->cursor_color_set = false;
+        t->cursor_color = t->initial_cursor;
+        t->cursor_color_set = t->initial_cursor_set;
         t->cursor_dirty = true;
         break;
     default:

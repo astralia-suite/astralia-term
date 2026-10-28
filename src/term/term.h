@@ -102,6 +102,9 @@ struct term {
     bool cursor_color_set;
     uint32_t initial_palette[256]; // for OSC 104/110/111 resets
     uint32_t initial_fg, initial_bg;
+    uint32_t initial_cursor; // valid when initial_cursor_set
+    bool initial_cursor_set;
+    uint32_t link_fg; // hovered link color
 
     struct composed_table composed;
 
@@ -135,6 +138,10 @@ struct term {
 
 void term_init(struct term *t, int cols, int rows, const struct term_host *host, void *user);
 void term_destroy(struct term *t);
+
+struct palette_file;
+// Makes the file's colors the new defaults; colors a program changed through OSC 4/10/11/12 keep their value.
+void term_apply_palette(struct term *t, const struct palette_file *p);
 void term_feed(struct term *t, const uint8_t *data, size_t len);
 void term_resize(struct term *t, int cols, int rows);
 void term_reset(struct term *t);

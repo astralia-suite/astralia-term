@@ -11,8 +11,6 @@
 #include "term/selection.h"
 #include "term/url.h"
 
-#define LINK_HOVER_FG 0x9b57f4 // astralia-shell-i3 palette::accent
-
 #define BELL_FLASH_ALPHA 0x4000 // opacity of the visual-bell overlay, 0..0xffff
 
 // Solid-color source reused between glyphs of the same color
@@ -524,7 +522,7 @@ draw_row(struct renderer *r, struct term *t, int row_idx, pixman_image_t *dst) {
         cell_colors(r, t, c, block && col == cursor_col, selected, &fg, &bg, NULL);
         if (col >= hover_from && col < hover_to && !selected && !(block && col == cursor_col) &&
             !(c->attrs & ATTR_INVISIBLE))
-            fg = LINK_HOVER_FG;
+            fg = t->link_fg;
         int x = r->pad_x + col * cw;
         int w = (col + 1 < t->cols && cells[col + 1].cp == CELL_SPACER) ? 2 * cw : cw;
 

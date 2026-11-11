@@ -35,7 +35,7 @@
 - `selection.h`+`.c`: Character/word/line selection: click/word/line boundary classification, drag extension, row-span query, UTF-8 extraction, scroll and reflow-resize adjustment, clearing when selected rows are written or erased.
 - `composed.h`+`.c`: Hash-deduplicated table of base plus combining codepoint chains; cells store `COMPOSED_BASE + index`.
 - `kitty_placeholder.h`+`.c`: Unicode-placeholder diacritic decode and left-neighbor inheritance for virtual placements, factored out of `render.c` for standalone testing.
-- `graphics.h`+`.c`: Kitty graphics protocol APC transport: control-data parsing, `m=`-chunk reassembly, `direct`/`file` transmission, formats 24/32/100 (`libspng`), `o=z` (`zlib`), a 64 MB LRU image store, `a=t`/`T`/`q`/`p`/`d`; virtual and non-virtual placements (the latter anchored by one `ATTR_IMAGE` cell that scrolls, reflows and erases like text, cursor-advanced like printed text); `graphics_each_anchor()` finds placements reaching given rows; `graphics_store_insert()` for internally-decoded (sixel) images; `id=0` (anonymous, no `i=` key) is processed normally but never replied to.
+- `graphics.h`+`.c`: Kitty graphics protocol APC transport: control-data parsing, `m=`-chunk reassembly, `direct`/`file` transmission, formats 24/32/100 (`libspng`), `o=z` (`zlib`), a 64 MB LRU image store, `a=t`/`T`/`q`/`p`/`d`; virtual and non-virtual placements (the latter anchored by one `ATTR_IMAGE` cell that scrolls, reflows and erases like text, cursor-advanced like printed text); `graphics_each_anchor()` finds placements reaching given rows; `graphics_store_insert()` for internally-decoded (sixel) images; `id=0` (anonymous, no `i=` key) is processed normally but never replied to; `e=` feature queries; one identical error for every failure on a non-direct medium.
 - `sixel.h`+`.c`: Sixel DCS body decoder (raster attributes, RGB/HLS color registers, repeat counts, band control) into a straight-alpha RGBA buffer; adapted from foot's algorithm, simplified to buffer-in/pixmap-out.
 
 ## src/input
@@ -64,7 +64,7 @@
 - `test_grid.c`: `cp_width()`, then `term` byte streams: wrapping, scrolling, erase, alt screen, replies, reflow, combining, `DECRQM`/`XTWINOPS`, mouse tracking modes, scrollback view, resize clipping with `overflow` round-trip, selection click/word/line/extraction/scroll/resize/cancellation; regressions feeding `testdata/fastfetch-sixel-regression.raw` and `testdata/fastfetch-kitty-regression.raw`.
 - `test_osc.c`: OSC title, palette and dynamic color set/query/reset with both terminators, OSC 8 links (dedup, ids, scroll, erase, limits, reset), OSC 52 decode, base64.
 - `test_url.c`: OSC 8 runs across SGR reset and erase; plain-text URL detection across wraps, paren/punctuation trimming, typing-line exclusion, per-row link mask, hover.
-- `test_graphics.c`: Kitty graphics APC control-data parsing, chunk reassembly, raw/`zlib`/PNG payloads, quiet modes, query, delete, quota eviction, virtual and non-virtual placement creation/cursor-advance/default-sizing/`a=d` erase by anchor and by area, anchor lookup above queried rows, anonymous (`id=0`) transmit/placement with no reply.
+- `test_graphics.c`: Kitty graphics APC control-data parsing, chunk reassembly, raw/`zlib`/PNG payloads, quiet modes, query, delete, quota eviction, virtual and non-virtual placement creation/cursor-advance/default-sizing/`a=d` erase by anchor and by area, anchor lookup above queried rows, anonymous (`id=0`) transmit/placement with no reply, uniform file errors, `e=` feature queries.
 - `test_kitty_placeholder.c`: Diacritic table round-trip, left-neighbor inheritance rule, id extraction.
 - `test_sixel.c`: Sixel decoder correctness: raster sizing, RGB/HLS color registers, repeat counts, band transitions, a pixel-for-pixel reference image.
 
@@ -90,11 +90,20 @@
 
 - `astralia-term.desktop`: Freedesktop desktop entry (`Exec=astralia-term`, `Icon=utilities-terminal`, generic icon name since the project ships no icon asset of its own), installed by `meson.build`'s `install_data()`.
 
-## important
+## knowledges
 
+- `readme.md`: Rules for the topic files: layout, entry format, no overlap, and backend tags.
 - `index.md`: Index of every source, test, and build file.
 - `convention.md`: Commenting, formatting, file-structure, include, logging, and dependency rules.
-- `knowledge.md`: Hard-won development rules, one statement plus one explanation each.
+- `kitty-graphics-protocol.md`: Local summary of the kitty graphics protocol specification.
+- `event-loop.md`: `epoll` dispatch order, hooks, `EINTR` and timers.
+- `processes-and-pty.md`: Forked children, `SIGCHLD`, environment scrubbing and pty writes.
+- `rendering.md`: Frame pacing, CPU drawing, glyph alpha and scale changes.
+- `backends.md`: Wayland and X11 buffers, protocol versions and raw input events.
+- `terminal-model.md`: Cells, reflow, scrollback, selection points, escape replies and links.
+- `graphics.md`: Kitty graphics replies, placements and their redraw rules.
+- `input.md`: Keyboard and mouse encoding into pty bytes.
+- `build-and-testing.md`: Meson quirks, test linking and safe manual testing.
 
 ## local
 

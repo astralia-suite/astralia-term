@@ -99,6 +99,8 @@ Most terminal emulators safely ignore unknown APC sequences.
 - **`f=24`**: 24-bit RGB (3 bytes per pixel).
 - **`f=32`**: 32-bit RGBA (4 bytes per pixel, default).
 - **`f=100`**: PNG format (direct compressed container data).
+- **`f=8`**: Palette indices, 1 byte per pixel, drawn with the terminal's current colors (kitty `0.50.0`, not implemented in `astralia-term`).
+- **`f=16`**: Palette index plus alpha, 2 bytes per pixel (kitty `0.50.0`, not implemented in `astralia-term`).
 
 ### Chunked Transmission (`m`)
 For large payloads, data is broken into chunks of up to 4096 base64-encoded bytes:
@@ -112,7 +114,12 @@ For large payloads, data is broken into chunks of up to 4096 base64-encoded byte
 - **`t=d`**: Direct in-band transfer via terminal escape sequence payload (default).
 - **`t=f`**: A regular file path on disk (must be readable by the terminal process).
 - **`t=t`**: A temporary file that the terminal will delete after reading.
-- **`t=s`**: POSIX shared memory object (`shm_open`).
+- **`t=s`**: POSIX shared memory object (`shm_open`). Names without a leading `/` must be accepted and passed through unmodified.
+
+Every failure to read an image file or shared memory object must produce one identical error, so that replies reveal nothing about files the client cannot read.
+
+### Feature queries (`e`)
+A query action with `e=<action>` asks which features are supported, for example `a=q,i=31,e=T,U=1`. The reply has `e` when the action is supported, plus every queried key with a non-default value that is supported for it, such as `i=31,e=T,U=1;OK`. `a`, `i`, `I`, `m` and `q` are never echoed. The query needs `i`, transmits no data, and does not affect a chunked transfer in progress.
 
 ---
 

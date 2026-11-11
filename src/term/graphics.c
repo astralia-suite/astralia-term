@@ -26,6 +26,7 @@ struct cmd {
     char medium;   // 'd' direct, 'f' file, 't' temp file, 's' shared memory
     char compress; // 'z' or 0
     char del;      // 'd' key's value, for action == 'd'
+    char report;   // 'e' key: the action a feature query asks about, or 0
     int format;    // 24, 32 or 100
     int width, height;
     uint32_t id;
@@ -424,9 +425,7 @@ reply(graphics_reply_fn fn, void *user, int quiet, bool ok, uint32_t id, uint32_
      * reader to misinterpret. */
     if (id == 0 && number == 0)
         return;
-    if (ok && quiet == 1)
-        return;
-    if (!ok && quiet == 2)
+    if (quiet != 0 && (ok || quiet > 1))
         return;
     char text[256];
     size_t n = 0;
@@ -449,6 +448,14 @@ reply_err(graphics_reply_fn fn, void *user, const struct cmd *c, const char *cod
     char code_msg[224];
     snprintf(code_msg, sizeof(code_msg), "%s:%s", code, msg);
     reply(fn, user, c->quiet, false, c->id, c->number, code_msg);
+}
+
+/* Every failure on a non-direct medium reads the same, so that replies cannot
+ * be used to probe files the client has no access to. */
+static void
+reply_file_err(graphics_reply_fn fn, void *user, const struct cmd *c, const char *reason) {
+    LOG_DBG("image file error: %s", reason);
+    reply_err(fn, user, c, "EBADF", "cannot read image data");
 }
 
 // ---- control data parsing ----
@@ -491,6 +498,10 @@ parse_control(const uint8_t *data, size_t len, struct cmd *c) {
         case 'd':
             if (vlen > 0)
                 c->del = val[0];
+            break;
+        case 'e':
+            if (vlen > 0)
+                c->report = val[0];
             break;
         case 'f':
             c->format = (int)parse_uint(val, vlen);
@@ -649,7 +660,9 @@ slice_data(uint8_t *buf, size_t *len, size_t offset, size_t size) {
     if (offset > *len)
         return false;
     size_t avail = *len - offset;
-    size_t take = size != 0 && size < avail ? size : avail;
+    if (size > avail)
+        return false;
+    size_t take = size != 0 ? size : avail;
     if (offset != 0)
         memmove(buf, buf + offset, take);
     *len = take;
@@ -794,7 +807,7 @@ decode_pixels(const struct cmd *c, const uint8_t *enc, size_t enc_len,
         }
         owns_raw = true;
     } else {
-        if (enc_len != expected) {
+        if (c->medium == 'd' ? enc_len != expected : enc_len < expected) {
             *err_code = "EINVAL";
             *err_msg = "pixel data size mismatch";
             return false;
@@ -1082,12 +1095,12 @@ handle_transmit(struct graphics_store *g, const struct cmd *c, const char *paylo
         }
         free(path);
         if (!ok) {
-            reply_err(fn, user, c, "EBADF", "cannot read image data");
+            reply_file_err(fn, user, c, "read failed");
             return;
         }
         if (!slice_data(data, &data_len, c->data_offset, c->data_size)) {
             free(data);
-            reply_err(fn, user, c, "EINVAL", "data offset out of range");
+            reply_file_err(fn, user, c, "S=/O= outside the data");
             return;
         }
     }
@@ -1099,14 +1112,20 @@ handle_transmit(struct graphics_store *g, const struct cmd *c, const char *paylo
     free(data);
 
     if (!decoded_ok) {
-        reply_err(fn, user, c, err_code, err_msg);
+        if (c->medium != 'd')
+            reply_file_err(fn, user, c, err_msg);
+        else
+            reply_err(fn, user, c, err_code, err_msg);
         return;
     }
 
     size_t bytes = (size_t)width * height * 4;
     if (bytes > GRAPHICS_QUOTA_BYTES) {
         free(rgba);
-        reply_err(fn, user, c, "ENOSPC", "image exceeds the graphics memory quota");
+        if (c->medium != 'd')
+            reply_file_err(fn, user, c, "image exceeds the graphics memory quota");
+        else
+            reply_err(fn, user, c, "ENOSPC", "image exceeds the graphics memory quota");
         return;
     }
 
@@ -1152,6 +1171,82 @@ handle_transmit(struct graphics_store *g, const struct cmd *c, const char *paylo
     struct cmd rc = *c;
     rc.id = (c->id != 0 || c->have_number) ? id : 0;
     reply_ok(fn, user, &rc);
+}
+
+// ---- feature queries ----
+
+struct feature_reply {
+    char text[320];
+    size_t n;
+};
+
+static void
+feature_add_char(struct feature_reply *r, char key, char value) {
+    r->n += (size_t)snprintf(r->text + r->n, sizeof(r->text) - r->n, ",%c=%c", key, value);
+}
+
+static void
+feature_add_uint(struct feature_reply *r, char key, uint32_t value) {
+    if (value != 0)
+        r->n += (size_t)snprintf(r->text + r->n, sizeof(r->text) - r->n, ",%c=%u", key, value);
+}
+
+static void
+feature_add_transmit(struct feature_reply *r, const struct cmd *c) {
+    if (c->medium == 'f' || c->medium == 't' || c->medium == 's')
+        feature_add_char(r, 't', c->medium);
+    if (c->compress == 'z')
+        feature_add_char(r, 'o', 'z');
+    if (c->format == 24 || c->format == 100)
+        feature_add_uint(r, 'f', (uint32_t)c->format);
+    feature_add_uint(r, 's', (uint32_t)c->width);
+    feature_add_uint(r, 'v', (uint32_t)c->height);
+    feature_add_uint(r, 'S', (uint32_t)c->data_size);
+    feature_add_uint(r, 'O', (uint32_t)c->data_offset);
+}
+
+static void
+feature_add_placement(struct feature_reply *r, const struct cmd *c) {
+    feature_add_uint(r, 'p', c->placement_id);
+    feature_add_uint(r, 'x', (uint32_t)c->x);
+    feature_add_uint(r, 'y', (uint32_t)c->y);
+    feature_add_uint(r, 'w', (uint32_t)c->w);
+    feature_add_uint(r, 'h', (uint32_t)c->h);
+    feature_add_uint(r, 'c', (uint32_t)c->cols);
+    feature_add_uint(r, 'r', (uint32_t)c->rows);
+    feature_add_uint(r, 'C', c->no_move);
+    feature_add_uint(r, 'U', c->virtual_placement);
+}
+
+static void
+feature_add_delete(struct feature_reply *r, const struct cmd *c) {
+    if (c->del != 0 && strchr("AiInNcCpPxXyY", c->del) != NULL)
+        feature_add_char(r, 'd', c->del);
+    feature_add_uint(r, 'p', c->placement_id);
+    feature_add_uint(r, 'x', (uint32_t)c->x);
+    feature_add_uint(r, 'y', (uint32_t)c->y);
+}
+
+/* a=q with e=<action>: echoes the keys supported for that action. An action
+ * left out of the reply's e= key is unsupported, so the reply is still OK. */
+static void
+handle_feature_query(const struct cmd *c, graphics_reply_fn fn, void *user) {
+    if (c->id == 0 || c->quiet != 0)
+        return;
+
+    struct feature_reply r = {0};
+    r.n = (size_t)snprintf(r.text, sizeof(r.text), "i=%u", c->id);
+    if (strchr("tTqpd", c->report) != NULL)
+        feature_add_char(&r, 'e', c->report);
+    if (c->report == 't' || c->report == 'T' || c->report == 'q')
+        feature_add_transmit(&r, c);
+    if (c->report == 'T' || c->report == 'p')
+        feature_add_placement(&r, c);
+    if (c->report == 'd')
+        feature_add_delete(&r, c);
+    snprintf(r.text + r.n, sizeof(r.text) - r.n, ";OK");
+    if (fn != NULL)
+        fn(user, r.text);
 }
 
 static void
@@ -1202,6 +1297,12 @@ void graphics_apc(struct graphics_store *g, const uint8_t *data, size_t len,
 
     struct cmd c = {.format = 32, .medium = 'd'};
     parse_control(body, semi, &c);
+
+    // Ahead of chunk handling: a feature query must not disturb a transfer in progress.
+    if (c.action == 'q' && c.report != 0) {
+        handle_feature_query(&c, fn, user);
+        return;
+    }
 
     if (g->chunk != NULL) {
         /* Continuation chunk: only m/q are meaningful; everything else in

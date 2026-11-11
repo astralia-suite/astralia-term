@@ -109,6 +109,11 @@ test_quiet_modes(void) {
     CHECK(reply[0] == '\0');
     CHECK(graphics_get(&t.graphics, 4) == NULL);
 
+    // q=2 suppresses the OK reply as well, as kitty does.
+    send_apc(&t, "f=32,s=1,v=1,i=5,a=T,q=2", px, sizeof(px));
+    CHECK(reply[0] == '\0');
+    CHECK(graphics_get(&t.graphics, 5) != NULL);
+
     // Default (q=0) reports both.
     send_apc(&t, "f=7,s=1,v=1,i=4,a=T", px, sizeof(px));
     CHECK(strncmp(reply, "\x1b_Gi=4;EINVAL", 13) == 0);
@@ -764,6 +769,95 @@ test_temp_file_medium(void) {
 }
 
 static void
+check_file_err(struct term *t, const char *ctrl, const char *path, uint32_t id) {
+    char expected[64];
+    snprintf(expected, sizeof(expected), "\x1b_Gi=%u;EBADF:cannot read image data\x1b\\", id);
+    send_apc(t, ctrl, (const uint8_t *)path, strlen(path));
+    CHECK(strcmp(reply, expected) == 0);
+    CHECK(graphics_get(&t->graphics, id) == NULL);
+}
+
+static void
+test_file_errors_are_uniform(void) {
+    struct term t;
+    term_init(&t, 10, 5, &host, NULL);
+
+    const char *path = "/tmp/astralia-test-uniform.bin";
+    FILE *f = fopen(path, "wb");
+    CHECK(f != NULL);
+    if (f == NULL)
+        return;
+    fwrite("abcd", 1, 4, f);
+    fclose(f);
+
+    check_file_err(&t, "f=24,s=1,v=1,i=1,t=f", "/tmp/astralia-test-does-not-exist", 1);
+    check_file_err(&t, "f=32,s=2,v=1,i=2,t=f", path, 2);
+    check_file_err(&t, "f=24,s=1,v=1,i=3,t=f,O=99", path, 3);
+    check_file_err(&t, "f=24,s=1,v=1,i=4,t=f,S=99", path, 4);
+    check_file_err(&t, "f=100,i=5,t=f", path, 5);
+    check_file_err(&t, "f=24,s=1,v=1,i=6,t=f,o=z", path, 6);
+    check_file_err(&t, "f=7,s=1,v=1,i=7,t=f", path, 7);
+
+    // A file larger than the image needs is read up to the size it needs.
+    send_apc(&t, "f=24,s=1,v=1,i=8,t=f", (const uint8_t *)path, strlen(path));
+    CHECK(strcmp(reply, "\x1b_Gi=8;OK\x1b\\") == 0);
+    struct graphics_image *img = graphics_get(&t.graphics, 8);
+    CHECK(img != NULL && memcmp(img->rgba, "abc\xff", 4) == 0);
+    unlink(path);
+
+    // Direct data belongs to the client, so its errors stay specific.
+    send_apc(&t, "f=32,s=2,v=1,i=9", (const uint8_t *)"abcd", 4);
+    CHECK(strcmp(reply, "\x1b_Gi=9;EINVAL:pixel data size mismatch\x1b\\") == 0);
+
+    term_destroy(&t);
+}
+
+static void
+test_feature_query(void) {
+    struct term t;
+    term_init(&t, 10, 5, &host, NULL);
+
+    send_apc(&t, "a=q,i=31,e=T,U=1,C=1", NULL, 0);
+    CHECK(strcmp(reply, "\x1b_Gi=31,e=T,C=1,U=1;OK\x1b\\") == 0);
+    CHECK(graphics_get(&t.graphics, 31) == NULL);
+
+    send_apc(&t, "a=q,i=32,e=t,t=f,o=z,f=100,U=1", NULL, 0);
+    CHECK(strcmp(reply, "\x1b_Gi=32,e=t,t=f,o=z,f=100;OK\x1b\\") == 0);
+
+    // Unimplemented actions and values are simply left out of the reply.
+    send_apc(&t, "a=q,i=33,e=f", NULL, 0);
+    CHECK(strcmp(reply, "\x1b_Gi=33;OK\x1b\\") == 0);
+    send_apc(&t, "a=q,i=34,e=T,f=16,z=1,P=1", NULL, 0);
+    CHECK(strcmp(reply, "\x1b_Gi=34,e=T;OK\x1b\\") == 0);
+    send_apc(&t, "a=q,i=35,e=d,d=z", NULL, 0);
+    CHECK(strcmp(reply, "\x1b_Gi=35,e=d;OK\x1b\\") == 0);
+    send_apc(&t, "a=q,i=36,e=d,d=I,p=7", NULL, 0);
+    CHECK(strcmp(reply, "\x1b_Gi=36,e=d,d=I,p=7;OK\x1b\\") == 0);
+
+    // Default values are never echoed.
+    send_apc(&t, "a=q,i=37,e=t,f=32,t=d", NULL, 0);
+    CHECK(strcmp(reply, "\x1b_Gi=37,e=t;OK\x1b\\") == 0);
+
+    send_apc(&t, "a=q,e=T,U=1", NULL, 0);
+    CHECK(reply[0] == '\0');
+    send_apc(&t, "a=q,i=38,e=T,q=1", NULL, 0);
+    CHECK(reply[0] == '\0');
+
+    // A query between chunks leaves the transfer intact.
+    uint8_t px[1 * 2 * 4] = {1, 2, 3, 4, 5, 6, 7, 8};
+    send_apc(&t, "f=32,s=1,v=2,i=5,m=1", px, 6);
+    CHECK(reply[0] == '\0');
+    send_apc(&t, "a=q,i=39,e=T,U=1", NULL, 0);
+    CHECK(strcmp(reply, "\x1b_Gi=39,e=T,U=1;OK\x1b\\") == 0);
+    send_apc(&t, "m=0", px + 6, 2);
+    CHECK(strcmp(reply, "\x1b_Gi=5;OK\x1b\\") == 0);
+    struct graphics_image *img = graphics_get(&t.graphics, 5);
+    CHECK(img != NULL && memcmp(img->rgba, px, sizeof(px)) == 0);
+
+    term_destroy(&t);
+}
+
+static void
 test_shared_memory_medium(void) {
     struct term t;
     term_init(&t, 10, 5, &host, NULL);
@@ -866,6 +960,8 @@ int main(void) {
     test_delete_by_position();
     test_each_anchor();
     test_temp_file_medium();
+    test_file_errors_are_uniform();
+    test_feature_query();
     test_shared_memory_medium();
     test_compressed_png();
     test_malformed_apc_is_ignored();

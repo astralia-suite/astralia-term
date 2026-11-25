@@ -2,9 +2,8 @@
 
 # Build script for astralia-term
 # Use:
-# <empty>: build and run the unit tests
+# <empty>: build the binary
 # setup: install dependencies
-# build: build only
 # test: run the unit tests
 # install: build and install system-wide
 # run: build and start the terminal, extra arguments are passed to it
